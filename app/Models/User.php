@@ -19,12 +19,15 @@ class User extends Authenticatable implements JWTSubject
         'is_active',
         'email_verification_token',
         'email_verified_at',
+        'otp_expired_at',
     ];
 
     protected $hidden = ['password'];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'email_verified_at' => 'datetime',
+        'otp_expired_at'    => 'datetime',
     ];
 
     // ── JWT Interface ──────────────────────────────────────────

@@ -38,8 +38,8 @@ class AuthController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Generate token (Plain Text)
-            $verifikasiToken = Str::random(64);
+            // 1. Generate otp untuk verifikasi email (6 digit angka)
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT); // 000000 - 999999
 
             // 2. Buat akun user — Token disimpan TANPA Hash agar stabil di URL
             $user = User::create([
@@ -48,8 +48,9 @@ class AuthController extends Controller
                 'password'                 => Hash::make($validated['password']),
                 'nama_lengkap'             => $validated['nama_lengkap'],
                 'is_active'                => false, 
-                'email_verification_token' => hash('sha256', $verifikasiToken), // PERBAIKAN: Hapus Hash::make di sini
+                'email_verification_token' => hash('sha256', $otp),
                 'email_verified_at'        => null,
+                'otp_expired_at'           => now()->addMinutes(10), // expired 10 menit
             ]);
 
             // 3. Assign role pasien
@@ -75,7 +76,7 @@ class AuthController extends Controller
             ]);
 
             // 5. Kirim email verifikasi (Kirim token asli)
-            Mail::to($user->email)->send(new VerifikasiEmailMail($user, $verifikasiToken));
+            Mail::to($user->email)->send(new VerifikasiEmailMail($user, $otp));
 
             DB::commit();
 
@@ -103,8 +104,8 @@ class AuthController extends Controller
     public function verifyEmail(Request $request): JsonResponse
     {
         $request->validate([
-            'token' => 'required|string',
             'email' => 'required|email',
+            'otp'   => 'required|string|size:6', // ← ganti dari token ke otp
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -117,16 +118,27 @@ class AuthController extends Controller
             return response()->json(['success' => true, 'message' => 'Email sudah diverifikasi. Silakan login.']);
         }
 
-        // PERBAIKAN: Gunakan perbandingan string biasa karena token tidak di-hash
-        if (!$user->email_verification_token || $user->email_verification_token !== hash('sha256', $request->token)) {
-            return response()->json(['success' => false, 'message' => 'Token verifikasi tidak valid.'], 422);
+        // Cek expired
+        if (!$user->otp_expired_at || now()->isAfter($user->otp_expired_at)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP sudah expired. Minta kirim ulang.',
+            ], 422);
         }
 
-        // Aktifkan akun
+        // Cek OTP
+        if (!$user->email_verification_token || $user->email_verification_token !== hash('sha256', $request->otp)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP tidak valid.',
+            ], 422);
+        }
+
         $user->update([
             'is_active'                => true,
             'email_verified_at'        => now(),
-            'email_verification_token' => null, 
+            'email_verification_token' => null,
+            'otp_expired_at'           => null,
         ]);
 
         return response()->json(['success' => true, 'message' => 'Email berhasil diverifikasi! Silakan login.']);
@@ -142,11 +154,14 @@ class AuthController extends Controller
             return response()->json(['success' => true, 'message' => 'Link baru akan dikirim jika email valid.']);
         }
 
-        $verifikasiToken = Str::random(64);
-        $user->update(['email_verification_token' => hash('sha256', $verifikasiToken)]); // Simpan Hash
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->update([
+            'email_verification_token' => hash('sha256', $otp),
+            'otp_expired_at'           => now()->addMinutes(10),
+            ]); // update token dan expired baru
 
         try {
-            Mail::to($user->email)->send(new VerifikasiEmailMail($user, $verifikasiToken));
+            Mail::to($user->email)->send(new VerifikasiEmailMail($user, $otp));
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Gagal mengirim email.'], 500);
         }

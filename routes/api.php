@@ -24,7 +24,7 @@ Route::prefix('auth')->group(function () {
     Route::post('register',      [AuthController::class, 'register']);
 
     // Verifikasi Email
-    Route::get('verify-email',           [AuthController::class, 'verifyEmail']);
+    Route::post('verify-email',           [AuthController::class, 'verifyEmail']);
     Route::post('resend-verification',   [AuthController::class, 'resendVerification']);
 
     // Forgot Password

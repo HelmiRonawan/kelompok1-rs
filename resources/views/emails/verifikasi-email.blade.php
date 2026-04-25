@@ -81,17 +81,26 @@
         <p>Terima kasih sudah mendaftar. Klik tombol di bawah untuk memverifikasi
             email kamu dan mengaktifkan akun:</p>
 
-        <div class="btn-container">
-            <a href="{{ $verifikasiUrl }}" class="btn">✅ Verifikasi Email Saya</a>
+        <div style="text-align: center; margin: 28px 0;">
+            <p>Masukkan kode OTP berikut di aplikasi:</p>
+            <div style="
+            display: inline-block;
+            background: #1a73e8;
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 12px;
+            padding: 16px 32px;
+            border-radius: 10px;
+        ">
+            {{ $otp }}
         </div>
+    </div>
 
-        <div class="warning-box">
-            🔒 Setelah verifikasi, kamu bisa langsung login dan melakukan
-            pendaftaran online ke unit pemeriksaan yang diinginkan.
-        </div>
-
-        <p>Jika tombol tidak berfungsi, copy URL berikut ke browser:</p>
-        <div class="url-box">{{ $verifikasiUrl }}</div>
+    <div class="warning-box">
+        ⏰ Kode OTP berlaku <strong>10 menit</strong>.
+        Jangan berikan kode ini ke siapapun.
+    </div>
 
         <p style="margin-top: 24px;">Jika kamu tidak merasa mendaftar, abaikan email ini.</p>
     </div>

@@ -15,14 +15,18 @@ class VerifikasiEmailMail extends Mailable
 
     public string $verifikasiUrl;
     public string $namaUser;
+    public string $otp;
 
     public function __construct(
         public User   $user,
         public string $plainToken
     ) {
+        $this->namaUser      = $user->nama_lengkap;
+        $this->otp           = $plainToken;
+
+        // url tidak dipakai lagi
         $frontendUrl         = config('app.frontend_url', config('app.url'));
         $this->verifikasiUrl = "{$frontendUrl}/verify-email?token={$plainToken}&email={$user->email}";
-        $this->namaUser      = $user->nama_lengkap;
     }
 
     public function envelope(): Envelope

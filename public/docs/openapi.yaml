@@ -210,24 +210,29 @@ paths:
               schema: { $ref: '#/components/schemas/ValidationError' }
 
   /auth/verify-email:
-    get:
+    post:
       tags: [Auth]
-      summary: Verifikasi email pasien
+      summary: Verifikasi email pasien via OTP
       description: |
-        Dipanggil saat pasien klik link di email.
-        Mengaktifkan akun user.
-        Frontend mengarahkan ke halaman ini setelah klik link.
-      parameters:
-        - name: token
-          in: query
-          required: true
-          schema: { type: string }
-          example: abc123xyz...
-        - name: email
-          in: query
-          required: true
-          schema: { type: string, format: email }
-          example: budi@gmail.com
+        Pasien memasukkan OTP 6 angka yang diterima di Gmail.
+        OTP berlaku 10 menit setelah register.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: budi@gmail.com
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+                  example: "482910"
       responses:
         "200":
           description: Email berhasil diverifikasi
@@ -239,7 +244,7 @@ paths:
                   success: { type: boolean, example: true }
                   message: { type: string, example: "Email berhasil diverifikasi! Silakan login." }
         "422":
-          description: Token tidak valid
+          description: OTP tidak valid atau expired
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }

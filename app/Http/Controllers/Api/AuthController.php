@@ -19,68 +19,46 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
     // ── REGISTER PASIEN MANDIRI ────────────────────────────────────────────
-
-    /**
-     * POST /api/auth/register
-     *
-     * Pasien daftar mandiri untuk keperluan pendaftaran online.
-     * Setelah register, email verifikasi dikirim ke Gmail.
-     * Akun TIDAK aktif sampai email diverifikasi.
-     *
-     * Body:
-     *   nik               : string (16 digit, wajib)
-     *   nama_lengkap      : string (wajib)
-     *   email             : string (wajib, untuk verifikasi)
-     *   password          : string (min 8, wajib)
-     *   password_confirmation : string (wajib)
-     *   tanggal_lahir     : date (wajib)
-     *   jenis_kelamin     : L|P (wajib)
-     *   tempat_lahir      : string (opsional)
-     *   alamat            : string (opsional)
-     *   no_telepon        : string (opsional)
-     *   jenis_pasien      : umum|bpjs (wajib)
-     *   no_bpjs           : string (wajib jika bpjs)
-     */
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nik'                  => 'required|string|size:16|unique:pasien,nik',
-            'nama_lengkap'         => 'required|string|max:100',
-            'email'                => 'required|email|unique:users,email',
-            'password'             => 'required|string|min:8|confirmed',
+            'nik'                 => 'required|string|size:16|unique:pasien,nik',
+            'nama_lengkap'        => 'required|string|max:100',
+            'email'               => 'required|email|unique:users,email',
+            'password'            => 'required|string|min:8|confirmed',
             'password_confirmation'=> 'required|string',
-            'tanggal_lahir'        => 'required|date',
-            'jenis_kelamin'        => 'required|in:L,P',
-            'tempat_lahir'         => 'nullable|string|max:100',
-            'alamat'               => 'nullable|string',
-            'no_telepon'           => 'nullable|string|max:20',
-            'jenis_pasien'         => 'required|in:umum,bpjs',
-            'no_bpjs'              => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
+            'tanggal_lahir'       => 'required|date',
+            'jenis_kelamin'       => 'required|in:L,P',
+            'tempat_lahir'        => 'nullable|string|max:100',
+            'alamat'              => 'nullable|string',
+            'no_telepon'          => 'nullable|string|max:20',
+            'jenis_pasien'        => 'required|in:umum,bpjs',
+            'no_bpjs'             => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
         try {
-            // Generate token verifikasi email
+            // 1. Generate token (Plain Text)
             $verifikasiToken = Str::random(64);
 
-            // Buat akun user — is_active FALSE sampai email diverifikasi
+            // 2. Buat akun user — Token disimpan TANPA Hash agar stabil di URL
             $user = User::create([
-                'username'                 => $validated['nik'], // username = NIK
+                'username'                 => $validated['nik'],
                 'email'                    => $validated['email'],
                 'password'                 => Hash::make($validated['password']),
                 'nama_lengkap'             => $validated['nama_lengkap'],
-                'is_active'                => false, // ← belum aktif
-                'email_verification_token' => Hash::make($verifikasiToken),
+                'is_active'                => false, 
+                'email_verification_token' => hash('sha256', $verifikasiToken), // PERBAIKAN: Hapus Hash::make di sini
                 'email_verified_at'        => null,
             ]);
 
-            // Assign role pasien
+            // 3. Assign role pasien
             $pasienRole = Role::where('nama_role', 'pasien')->first();
             if ($pasienRole) {
                 $user->roles()->attach($pasienRole->id);
             }
 
-            // Buat data pasien
+            // 4. Buat data pasien
             $pasien = Pasien::create([
                 'user_id'       => $user->id,
                 'nomor_rm'      => Pasien::generateNomorRM(),
@@ -96,7 +74,7 @@ class AuthController extends Controller
                 'no_bpjs'       => $validated['no_bpjs'] ?? null,
             ]);
 
-            // Kirim email verifikasi
+            // 5. Kirim email verifikasi (Kirim token asli)
             Mail::to($user->email)->send(new VerifikasiEmailMail($user, $verifikasiToken));
 
             DB::commit();
@@ -122,13 +100,6 @@ class AuthController extends Controller
     }
 
     // ── VERIFIKASI EMAIL ───────────────────────────────────────────────────
-
-    /**
-     * GET /api/auth/verify-email?token=xxx&email=yyy
-     *
-     * Dipanggil saat pasien klik link di email.
-     * Mengaktifkan akun user.
-     */
     public function verifyEmail(Request $request): JsonResponse
     {
         $request->validate([
@@ -139,80 +110,48 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun tidak ditemukan.',
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Akun tidak ditemukan.'], 404);
         }
 
         if ($user->email_verified_at) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Email sudah diverifikasi sebelumnya. Silakan login.',
-            ]);
+            return response()->json(['success' => true, 'message' => 'Email sudah diverifikasi. Silakan login.']);
         }
 
-        if (!$user->email_verification_token || !Hash::check($request->token, $user->email_verification_token)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token verifikasi tidak valid.',
-            ], 422);
+        // PERBAIKAN: Gunakan perbandingan string biasa karena token tidak di-hash
+        if (!$user->email_verification_token || $user->email_verification_token !== hash('sha256', $request->token)) {
+            return response()->json(['success' => false, 'message' => 'Token verifikasi tidak valid.'], 422);
         }
 
         // Aktifkan akun
         $user->update([
             'is_active'                => true,
             'email_verified_at'        => now(),
-            'email_verification_token' => null, // hapus token setelah dipakai
+            'email_verification_token' => null, 
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Email berhasil diverifikasi! Akun kamu sudah aktif. Silakan login.',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Email berhasil diverifikasi! Silakan login.']);
     }
 
-    /**
-     * POST /api/auth/resend-verification
-     * Kirim ulang email verifikasi jika belum diterima
-     *
-     * Body: { "email": "..." }
-     */
+    // ── RESEND VERIFICATION ────────────────────────────────────────────────
     public function resendVerification(Request $request): JsonResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
+        $request->validate(['email' => 'required|email']);
         $user = User::where('email', $request->email)->first();
 
-        // Selalu response sukses (tidak bocorkan info)
         if (!$user || $user->email_verified_at) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Jika email belum diverifikasi, link baru akan dikirim.',
-            ]);
+            return response()->json(['success' => true, 'message' => 'Link baru akan dikirim jika email valid.']);
         }
 
-        // Generate token baru
         $verifikasiToken = Str::random(64);
-        $user->update([
-            'email_verification_token' => Hash::make($verifikasiToken),
-        ]);
+        $user->update(['email_verification_token' => hash('sha256', $verifikasiToken)]); // Simpan Hash
 
         try {
             Mail::to($user->email)->send(new VerifikasiEmailMail($user, $verifikasiToken));
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mengirim email. Coba beberapa saat lagi.',
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Gagal mengirim email.'], 500);
         }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Link verifikasi baru telah dikirim ke email kamu.',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Link verifikasi baru telah dikirim.']);
     }
 
     // ── LOGIN ──────────────────────────────────────────────────────────────

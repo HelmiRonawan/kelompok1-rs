@@ -1,0 +1,1047 @@
+openapi: 3.0.3
+info:
+  title: SIMRS Kelompok 1 — Auth & Pendaftaran API
+  description: |
+    ## Sistem Informasi Manajemen Rumah Sakit
+    ### Kelompok 1: Auth Center & Pendaftaran Pasien
+
+    API ini melayani:
+    - **Auth Center**: Login, logout, refresh token untuk **semua kelompok (1-4)**
+    - **Register Pasien**: Pendaftaran mandiri pasien dengan verifikasi email
+    - **Pendaftaran Kunjungan**: Daftar ke unit pemeriksaan
+    - **Antrian**: Nomor antrian & pemanggilan per unit
+
+    ### Cara Pakai Token
+    Setelah login, sertakan token di setiap request:
+    ```
+    Authorization: Bearer {token}
+    ```
+
+    ### Integrasi Kelompok Lain
+    Kelompok 2, 3, 4 cukup panggil:
+    - `POST /api/auth/login` → dapat token
+    - `POST /api/auth/verify-token` → verifikasi token dari request masuk
+  version: 1.0.0
+  contact:
+    name: Kelompok 1
+    email: ahmadhelmi2804@gmail.com
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local Development
+  - url: http://192.168.x.x:8000/api
+    description: Local Network (ganti IP sesuai server)
+
+tags:
+  - name: Auth
+    description: Login, logout, register, verifikasi email, forgot password
+  - name: User Management
+    description: CRUD user (Superadmin only)
+  - name: Pasien
+    description: Data pasien
+  - name: Pendaftaran
+    description: Pendaftaran kunjungan ke unit pemeriksaan
+  - name: Antrian
+    description: Nomor antrian & pemanggilan
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ── Generic Response ────────────────────────────────────────────────────
+    SuccessResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string }
+
+    ErrorResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string, example: Validation failed }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    # ── User ────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:           { type: integer, example: 1 }
+        username:     { type: string, example: adminperawat01 }
+        nama_lengkap: { type: string, example: Admin Perawat Satu }
+        email:        { type: string, example: perawat@rs.id }
+        is_active:    { type: boolean, example: true }
+        roles:
+          type: array
+          items: { type: string }
+          example: [admin_perawat]
+
+    # ── Pasien ───────────────────────────────────────────────────────────────
+    Pasien:
+      type: object
+      properties:
+        id:             { type: integer, example: 1 }
+        nomor_rm:       { type: string, example: RM-000001 }
+        nomor_kartu:    { type: string, example: RS-00000001 }
+        nik:            { type: string, example: "3201234567890001" }
+        nama_lengkap:   { type: string, example: Budi Santoso }
+        jenis_kelamin:  { type: string, enum: [L, P], example: L }
+        tanggal_lahir:  { type: string, format: date, example: "1990-05-20" }
+        jenis_pasien:   { type: string, enum: [umum, bpjs], example: umum }
+        no_bpjs:        { type: string, nullable: true }
+
+    # ── Antrian ──────────────────────────────────────────────────────────────
+    Antrian:
+      type: object
+      properties:
+        id:            { type: integer }
+        kode_antrian:  { type: string, example: MATA-001 }
+        nomor_antrian: { type: integer, example: 1 }
+        status:        { type: string, enum: [menunggu, dipanggil, dilayani, selesai, tidak_hadir] }
+        tanggal:       { type: string, format: date }
+        waktu_panggil: { type: string, format: date-time, nullable: true }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTH
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register pasien mandiri
+      description: |
+        Pasien mendaftar sendiri untuk keperluan **pendaftaran online**.
+        Setelah register, email verifikasi dikirim ke Gmail.
+        Akun **tidak aktif** sampai email diverifikasi.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nik, nama_lengkap, email, password, password_confirmation, tanggal_lahir, jenis_kelamin, jenis_pasien]
+              properties:
+                nik:
+                  type: string
+                  minLength: 16
+                  maxLength: 16
+                  example: "3201234567890001"
+                nama_lengkap:
+                  type: string
+                  example: Budi Santoso
+                email:
+                  type: string
+                  format: email
+                  example: budi@gmail.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: password123
+                password_confirmation:
+                  type: string
+                  example: password123
+                tanggal_lahir:
+                  type: string
+                  format: date
+                  example: "1990-05-20"
+                jenis_kelamin:
+                  type: string
+                  enum: [L, P]
+                  example: L
+                tempat_lahir:
+                  type: string
+                  example: Jakarta
+                alamat:
+                  type: string
+                  example: Jl. Merdeka No. 1
+                no_telepon:
+                  type: string
+                  example: "08123456789"
+                jenis_pasien:
+                  type: string
+                  enum: [umum, bpjs]
+                  example: umum
+                no_bpjs:
+                  type: string
+                  example: "0001234567890"
+                  description: Wajib jika jenis_pasien = bpjs
+      responses:
+        "201":
+          description: Registrasi berhasil, cek email
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Registrasi berhasil! Cek email kamu untuk verifikasi akun." }
+                  data:
+                    type: object
+                    properties:
+                      username:  { type: string, example: "3201234567890001" }
+                      email:     { type: string, example: budi@gmail.com }
+                      nomor_rm:  { type: string, example: RM-000001 }
+        "422":
+          description: Validasi gagal
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+
+  /auth/verify-email:
+    get:
+      tags: [Auth]
+      summary: Verifikasi email pasien
+      description: |
+        Dipanggil saat pasien klik link di email.
+        Mengaktifkan akun user.
+        Frontend mengarahkan ke halaman ini setelah klik link.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+          example: abc123xyz...
+        - name: email
+          in: query
+          required: true
+          schema: { type: string, format: email }
+          example: budi@gmail.com
+      responses:
+        "200":
+          description: Email berhasil diverifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Email berhasil diverifikasi! Silakan login." }
+        "422":
+          description: Token tidak valid
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Kirim ulang email verifikasi
+      description: Jika pasien tidak menerima email verifikasi, bisa minta kirim ulang.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: budi@gmail.com
+      responses:
+        "200":
+          description: Email terkirim (selalu sukses meskipun email tidak ditemukan)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessResponse' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login — semua kelompok pakai endpoint ini
+      description: |
+        **Dipakai oleh semua kelompok (1, 2, 3, 4).**
+
+        Response berisi JWT token + roles user.
+        Token digunakan di header `Authorization: Bearer {token}` untuk semua request berikutnya.
+
+        ### Remember Me
+        | remember_me | Expire Token |
+        |---|---|
+        | false (default) | 60 menit |
+        | true | 7 hari |
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: adminperawat01
+                password:
+                  type: string
+                  example: perawat123
+                remember_me:
+                  type: boolean
+                  default: false
+                  example: false
+            examples:
+              Login Biasa:
+                value: { username: adminperawat01, password: perawat123, remember_me: false }
+              Login Remember Me:
+                value: { username: adminperawat01, password: perawat123, remember_me: true }
+      responses:
+        "200":
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:     { type: boolean, example: true }
+                  message:     { type: string, example: Login berhasil. }
+                  data:
+                    type: object
+                    properties:
+                      token:       { type: string, example: eyJ0eXAiOiJKV1Qi... }
+                      token_type:  { type: string, example: Bearer }
+                      expires_in:  { type: integer, example: 3600, description: dalam detik }
+                      remember_me: { type: boolean, example: false }
+                      user:        { $ref: '#/components/schemas/User' }
+        "401":
+          description: Username atau password salah
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        "403":
+          description: Akun tidak aktif atau email belum diverifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  message: { type: string }
+                  action:  { type: string, example: resend_verification }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout — invalidate token
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logout berhasil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessResponse' }
+        "401":
+          description: Token tidak valid
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh token
+      description: Perpanjang token sebelum expired. Remember me dipertahankan.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token baru
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:    { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      token:       { type: string }
+                      token_type:  { type: string, example: Bearer }
+                      expires_in:  { type: integer }
+                      remember_me: { type: boolean }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Info user yang sedang login
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Data user + info token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      id:             { type: integer }
+                      username:       { type: string }
+                      nama_lengkap:   { type: string }
+                      email:          { type: string }
+                      email_verified: { type: boolean }
+                      roles:          { type: array, items: { type: string } }
+                      token_info:
+                        type: object
+                        properties:
+                          remember_me: { type: boolean }
+                          expired_at:  { type: string, example: "2024-01-15 10:30:00" }
+
+  /auth/verify-token:
+    post:
+      tags: [Auth]
+      summary: Verifikasi token — untuk kelompok 2, 3, 4
+      description: |
+        **Endpoint ini dipakai kelompok lain untuk memvalidasi token.**
+
+        Kelompok 2, 3, 4 mengirim token dari header request mereka ke sini.
+        Response berisi `user_id`, `nama`, dan `roles` yang bisa dipakai untuk otorisasi.
+
+        ### Contoh penggunaan di kelompok lain (Laravel):
+        ```php
+        $response = Http::withToken($request->bearerToken())
+            ->post('http://kelompok1.local/api/auth/verify-token');
+
+        if ($response['valid']) {
+            $roles = $response['data']['roles'];
+            // lanjut proses...
+        }
+        ```
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Token valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean, example: true }
+                  valid:    { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      user_id:    { type: integer, example: 5 }
+                      nama:       { type: string, example: Dr. Budi Santoso }
+                      roles:      { type: array, items: { type: string }, example: [dokter] }
+                      expired_at: { type: string, example: "2024-01-15 10:30:00" }
+        "401":
+          description: Token tidak valid atau expired
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request reset password
+      description: Kirim link reset password ke email. Berlaku 15 menit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, example: budi@gmail.com }
+      responses:
+        "200":
+          description: Selalu sukses (tidak bocorkan info email terdaftar atau tidak)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessResponse' }
+
+  /auth/check-reset-token:
+    get:
+      tags: [Auth]
+      summary: Cek validitas token reset password
+      description: Dipakai frontend untuk validasi token sebelum tampilkan form reset.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+        - name: email
+          in: query
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: Token valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:    { type: boolean, example: true }
+                  valid:      { type: boolean, example: true }
+                  expired_at: { type: string }
+        "422":
+          description: Token tidak valid atau expired
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Submit password baru
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, email, password, password_confirmation]
+              properties:
+                token:                 { type: string }
+                email:                 { type: string, format: email }
+                password:              { type: string, minLength: 8 }
+                password_confirmation: { type: string }
+      responses:
+        "200":
+          description: Password berhasil direset
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessResponse' }
+        "422":
+          description: Token tidak valid atau expired
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # USER MANAGEMENT
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /users:
+    get:
+      tags: [User Management]
+      summary: List semua user
+      security:
+        - bearerAuth: []
+      description: Hanya bisa diakses oleh **superadmin**.
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Cari by nama atau username
+        - name: role
+          in: query
+          schema: { type: string }
+          example: dokter
+          description: Filter by role
+      responses:
+        "200":
+          description: List user dengan pagination
+        "403":
+          description: Bukan superadmin
+
+    post:
+      tags: [User Management]
+      summary: Buat user baru
+      description: |
+        Hanya **superadmin**. Dipakai untuk buat akun staff semua kelompok.
+
+        ### Role yang tersedia:
+        | Role | Kelompok |
+        |---|---|
+        | superadmin | 1 |
+        | admin_perawat | 1 |
+        | pasien | 1 |
+        | perawat | 2 |
+        | dokter | 2 |
+        | kasir | 3 |
+        | admin_kasir | 3 |
+        | apoteker | 4 |
+        | admin_apotik | 4 |
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, nama_lengkap, roles]
+              properties:
+                username:     { type: string, example: dokter02 }
+                email:        { type: string, format: email, example: dokter02@rs.id }
+                password:     { type: string, minLength: 8, example: dokter123 }
+                nama_lengkap: { type: string, example: Dr. Siti Rahayu }
+                roles:
+                  type: array
+                  items: { type: string }
+                  example: [dokter]
+            examples:
+              Buat Dokter:
+                value: { username: dokter02, email: dokter02@rs.id, password: dokter123, nama_lengkap: "Dr. Siti Rahayu", roles: [dokter] }
+              Buat Kasir:
+                value: { username: kasir02, email: kasir02@rs.id, password: kasir123, nama_lengkap: "Kasir Dua", roles: [kasir] }
+              User dengan 2 Role:
+                value: { username: perawat02, email: perawat02@rs.id, password: perawat123, nama_lengkap: "Perawat Dua", roles: [perawat, admin_perawat] }
+      responses:
+        "201":
+          description: User berhasil dibuat
+        "403":
+          description: Bukan superadmin
+        "422":
+          description: Validasi gagal (username sudah ada, dll)
+
+  /users/{id}:
+    get:
+      tags: [User Management]
+      summary: Detail user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Data user
+        "404":
+          description: User tidak ditemukan
+
+    put:
+      tags: [User Management]
+      summary: Update user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:        { type: string }
+                nama_lengkap: { type: string }
+                password:     { type: string, minLength: 8 }
+                is_active:    { type: boolean }
+                roles:        { type: array, items: { type: string } }
+      responses:
+        "200":
+          description: User diupdate
+
+    delete:
+      tags: [User Management]
+      summary: Hapus user (soft delete)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User dihapus
+        "422":
+          description: Tidak bisa hapus akun sendiri
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PASIEN
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /pasien:
+    get:
+      tags: [Pasien]
+      summary: Cari / list pasien
+      description: Bisa cari by nama, NIK, nomor kartu, atau nomor RM.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Nama / NIK / nomor kartu / nomor RM
+      responses:
+        "200":
+          description: List pasien dengan pagination
+
+    post:
+      tags: [Pasien]
+      summary: Daftar pasien baru (oleh admin perawat)
+      description: |
+        Admin perawat mendaftarkan pasien yang datang langsung.
+        Akun user otomatis dibuat dengan:
+        - **username** = NIK
+        - **password** = tanggal lahir (YYYYMMDD)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nik, nama_lengkap, jenis_kelamin, tanggal_lahir, jenis_pasien]
+              properties:
+                nik:           { type: string, minLength: 16, maxLength: 16 }
+                nama_lengkap:  { type: string }
+                jenis_kelamin: { type: string, enum: [L, P] }
+                tanggal_lahir: { type: string, format: date }
+                tempat_lahir:  { type: string }
+                alamat:        { type: string }
+                no_telepon:    { type: string }
+                golongan_darah: { type: string, enum: [A, B, AB, O] }
+                jenis_pasien:  { type: string, enum: [umum, bpjs] }
+                no_bpjs:       { type: string }
+      responses:
+        "201":
+          description: Pasien berhasil didaftarkan
+
+  /pasien/cek-nik/{nik}:
+    get:
+      tags: [Pasien]
+      summary: Cek apakah NIK sudah terdaftar
+      description: Dipakai sebelum mendaftarkan pasien baru untuk cek apakah sudah pernah datang.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: nik
+          in: path
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 16 }
+      responses:
+        "200":
+          description: Hasil cek NIK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:    { type: boolean }
+                  terdaftar:  { type: boolean }
+                  data:       { $ref: '#/components/schemas/Pasien' }
+
+  /pasien/{id}:
+    get:
+      tags: [Pasien]
+      summary: Detail pasien
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Data pasien lengkap + riwayat pendaftaran
+
+    put:
+      tags: [Pasien]
+      summary: Update data pasien
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_lengkap:  { type: string }
+                alamat:        { type: string }
+                no_telepon:    { type: string }
+                golongan_darah: { type: string }
+                jenis_pasien:  { type: string, enum: [umum, bpjs] }
+                no_bpjs:       { type: string }
+      responses:
+        "200":
+          description: Data diupdate
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PENDAFTARAN
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /pendaftaran:
+    get:
+      tags: [Pendaftaran]
+      summary: List pendaftaran hari ini
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tanggal
+          in: query
+          schema: { type: string, format: date }
+          description: Default hari ini
+        - name: unit_id
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [terdaftar, dipanggil, sedang_periksa, selesai_periksa, selesai] }
+      responses:
+        "200":
+          description: List pendaftaran
+
+    post:
+      tags: [Pendaftaran]
+      summary: Daftarkan kunjungan pasien (admin perawat / pasien online)
+      description: |
+        ### Alur status pendaftaran:
+        ```
+        terdaftar → dipanggil → sedang_periksa → selesai_periksa → selesai
+        ```
+        Nomor antrian otomatis dibuat setelah pendaftaran berhasil.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pasien_id, unit_id]
+              properties:
+                pasien_id:
+                  type: integer
+                  example: 1
+                unit_id:
+                  type: integer
+                  example: 1
+                  description: "1=Mata, 2=Gigi, 3=Penyakit Dalam, dst"
+                keluhan:
+                  type: string
+                  example: Mata terasa perih dan merah
+                jenis_pendaftaran:
+                  type: string
+                  enum: [langsung, online]
+                  default: langsung
+      responses:
+        "201":
+          description: Pendaftaran berhasil + nomor antrian
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  antrian:
+                    type: object
+                    properties:
+                      nomor: { type: integer, example: 1 }
+                      kode:  { type: string, example: MATA-001 }
+                      unit:  { type: string, example: Mata }
+        "422":
+          description: Pasien sudah terdaftar di unit ini hari ini
+
+  /pendaftaran/{id}:
+    get:
+      tags: [Pendaftaran]
+      summary: Detail pendaftaran
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Detail pendaftaran + antrian
+
+  /pendaftaran/{id}/status:
+    put:
+      tags: [Pendaftaran]
+      summary: Update status pendaftaran
+      description: |
+        **Dipakai kelompok lain** untuk update status saat pasien pindah tahap.
+
+        Contoh: Kelompok 2 update status ke `sedang_periksa` saat dokter mulai periksa.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [terdaftar, dipanggil, sedang_periksa, selesai_periksa, selesai]
+      responses:
+        "200":
+          description: Status diupdate
+
+  /pendaftaran/pasien/{pasienId}/riwayat:
+    get:
+      tags: [Pendaftaran]
+      summary: Riwayat kunjungan pasien
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pasienId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Riwayat kunjungan dengan pagination
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ANTRIAN
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /antrian:
+    get:
+      tags: [Antrian]
+      summary: List antrian hari ini (semua unit)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tanggal
+          in: query
+          schema: { type: string, format: date }
+        - name: unit_id
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: List antrian dikelompokkan per unit
+
+  /antrian/unit/{unitId}/display:
+    get:
+      tags: [Antrian]
+      summary: Display monitor antrian (PUBLIC — tidak perlu token)
+      description: |
+        Endpoint ini **tidak perlu token**. Dipakai untuk **monitor di ruang tunggu**.
+
+        Menampilkan:
+        - Nomor antrian yang sedang dipanggil
+        - 5 antrian berikutnya
+        - Statistik hari ini (total, selesai, menunggu)
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "1=Mata, 2=Gigi, 3=Penyakit Dalam, dst"
+      responses:
+        "200":
+          description: Data display monitor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unit:     { type: string, example: Mata }
+                  tanggal:  { type: string, format: date }
+                  dipanggil:
+                    type: object
+                    nullable: true
+                    properties:
+                      kode:         { type: string, example: MATA-005 }
+                      nomor:        { type: integer, example: 5 }
+                      nama_pasien:  { type: string, example: Budi Santoso }
+                      waktu_panggil: { type: string, format: date-time }
+                  antrian_menunggu:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        kode:  { type: string }
+                        nomor: { type: integer }
+                  statistik:
+                    type: object
+                    properties:
+                      total:    { type: integer }
+                      selesai:  { type: integer }
+                      menunggu: { type: integer }
+
+  /antrian/{id}/panggil:
+    post:
+      tags: [Antrian]
+      summary: Panggil nomor antrian tertentu
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Antrian dipanggil
+        "422":
+          description: Antrian tidak dalam status menunggu
+
+  /antrian/unit/{unitId}/panggil-berikutnya:
+    post:
+      tags: [Antrian]
+      summary: Panggil otomatis antrian berikutnya
+      description: Otomatis memanggil nomor antrian terkecil yang masih berstatus menunggu di unit tersebut.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Antrian berikutnya dipanggil
+        "404":
+          description: Tidak ada antrian yang menunggu
+
+  /antrian/{id}/selesai:
+    put:
+      tags: [Antrian]
+      summary: Tandai antrian selesai
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Antrian ditandai selesai
+
+  /antrian/saya:
+    get:
+      tags: [Antrian]
+      summary: Lihat antrian sendiri (khusus pasien)
+      description: Pasien bisa lihat status antrian mereka hari ini di semua unit.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List antrian pasien hari ini

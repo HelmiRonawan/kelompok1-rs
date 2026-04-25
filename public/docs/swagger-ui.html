@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMRS API Documentation — Kelompok 1</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css">
+    <style>
+        body { margin: 0; background: #fafafa; }
+        .topbar { background: linear-gradient(135deg, #1a73e8, #0d47a1) !important; }
+        .topbar-wrapper img { display: none; }
+        .topbar-wrapper::after {
+            content: '🏥 SIMRS Kelompok 1 — API Documentation';
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+<div id="swagger-ui"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js"></script>
+<script>
+    window.onload = function () {
+        SwaggerUIBundle({
+            url: "/docs/openapi.yaml",   // file yaml di public/docs/
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            layout: "StandaloneLayout",
+            persistAuthorization: true,  // token tidak hilang saat refresh
+            displayRequestDuration: true,
+            filter: true,
+            tryItOutEnabled: true,       // bisa langsung test dari browser
+        });
+    }
+</script>
+</body>
+</html>

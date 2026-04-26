@@ -101,17 +101,26 @@
             (<strong>{{ $user->username }}</strong>).
             Klik tombol di bawah untuk membuat password baru:</p>
 
-        <div class="btn-container">
-            <a href="{{ $resetUrl }}" class="btn">Reset Password Saya</a>
+        <div style="text-align: center; margin: 28px 0;">
+            <p>Masukkan kode OTP berikut untuk reset password:</p>
+            <div style="
+                display: inline-block;
+                background: #1a73e8;
+                color: white;
+                font-size: 36px;
+                font-weight: bold;
+                letter-spacing: 12px;
+                padding: 16px 32px;
+                border-radius: 10px;
+            ">
+                {{ $otp }}
+            </div>
         </div>
 
-        <div class="warning-box">
-            ⏰ <strong>Link ini hanya berlaku {{ $expiredInfo }}</strong> sejak email ini dikirim.
-            Setelah itu, kamu perlu request ulang.
-        </div>
-
-        <p>Jika tombol di atas tidak berfungsi, copy dan paste URL berikut ke browser:</p>
-        <div class="url-box">{{ $resetUrl }}</div>
+    <div class="warning-box">
+        ⏰ Kode OTP berlaku <strong>10 menit</strong>.
+        Jangan berikan kode ini ke siapapun.
+    </div>
 
         <p style="margin-top: 24px;">Jika kamu <strong>tidak</strong> merasa meminta reset password,
             abaikan email ini. Password kamu tidak akan berubah.</p>

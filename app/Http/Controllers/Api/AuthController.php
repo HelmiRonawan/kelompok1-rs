@@ -321,36 +321,40 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json(['success' => true, 'message' => 'Jika email terdaftar, link reset password akan dikirim.']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Jika email terdaftar, OTP akan dikirim.'
+                ]);
         }
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
 
-        $plainToken = Str::random(64);
+        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         DB::table('password_reset_tokens')->insert([
             'email'      => $user->email,
             'username'   => $user->username,
-            'token'      => Hash::make($plainToken),
+            'token'      => hash('sha256', $otp),
             'created_at' => now(),
-            'expired_at' => now()->addMinutes(15),
+            'expired_at' => now()->addMinutes(10),
             'used'       => false,
         ]);
 
         try {
-            Mail::to($user->email)->send(new ForgotPasswordMail($user, $plainToken));
+            Mail::to($user->email)->send(new ForgotPasswordMail($user, $otp));
         } catch (\Exception $e) {
             DB::table('password_reset_tokens')->where('email', $user->email)->delete();
             return response()->json(['success' => false, 'message' => 'Gagal mengirim email.'], 500);
         }
 
-        return response()->json(['success' => true, 'message' => 'Link reset password telah dikirim. Berlaku 15 menit.']);
+        return response()->json(['success' => true, 'message' => 'OTP reset password telah dikirim ke email. Berlaku 10 menit.']);
     }
 
     public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'token'                 => 'required|string',
             'email'                 => 'required|email',
+            'otp'                   => 'required|string|size:6',
             'password'              => 'required|string|min:8|confirmed',
             'password_confirmation' => 'required|string',
         ]);
@@ -360,30 +364,86 @@ class AuthController extends Controller
             ->where('used', false)
             ->first();
 
-        if (!$record || now()->isAfter($record->expired_at) || !Hash::check($request->token, $record->token)) {
-            return response()->json(['success' => false, 'message' => 'Token tidak valid atau sudah expired.'], 422);
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP tidak valid.',
+            ], 422);
+        }
+
+        // Cek expired
+        if (now()->isAfter($record->expired_at)) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP sudah expired. Silakan request ulang.',
+            ], 422);
+        }
+
+        // Cek OTP
+        if (hash('sha256', $request->otp) !== $record->token) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP tidak valid.',
+            ], 422);
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
         $user->update(['password' => Hash::make($request->password)]);
-        DB::table('password_reset_tokens')->where('email', $request->email)->update(['used' => true]);
 
-        return response()->json(['success' => true, 'message' => 'Password berhasil direset. Silakan login.']);
+        DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->update(['used' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset. Silakan login.',
+        ]);
     }
 
     public function checkResetToken(Request $request): JsonResponse
     {
-        $request->validate(['token' => 'required|string', 'email' => 'required|email']);
+        $request->validate([
+            'email' => 'required|email',
+            'otp'   => 'required|string|size:6', // ← ganti dari token ke otp
+        ]);
 
         $record = DB::table('password_reset_tokens')
             ->where('email', $request->email)
             ->where('used', false)
             ->first();
 
-        if (!$record || now()->isAfter($record->expired_at) || !Hash::check($request->token, $record->token)) {
-            return response()->json(['success' => false, 'valid' => false, 'message' => 'Token tidak valid atau expired.'], 422);
+        if (!$record) {
+            return response()->json([
+                'success' => false,
+                'valid'   => false,
+                'message' => 'OTP tidak valid.',
+            ], 422);
         }
 
-        return response()->json(['success' => true, 'valid' => true, 'expired_at' => $record->expired_at]);
+        // Cek expired
+        if (now()->isAfter($record->expired_at)) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return response()->json([
+                'success' => false,
+                'valid'   => false,
+                'message' => 'OTP sudah expired. Silakan request ulang.',
+            ], 422);
+        }
+
+        // Cek OTP
+        if (hash('sha256', $request->otp) !== $record->token) {
+            return response()->json([
+                'success' => false,
+                'valid'   => false,
+                'message' => 'OTP tidak valid.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success'    => true,
+            'valid'      => true,
+            'expired_at' => $record->expired_at,
+        ]);
     }
 }

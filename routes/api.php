@@ -30,7 +30,7 @@ Route::prefix('auth')->group(function () {
     // Forgot Password
     Route::post('forgot-password',  [AuthController::class, 'forgotPassword']);
     Route::post('reset-password',   [AuthController::class, 'resetPassword']);
-    Route::get('check-reset-token', [AuthController::class, 'checkResetToken']);
+    Route::post('check-reset-token', [AuthController::class, 'checkResetToken']);
 });
 
 // ── Auth Protected (perlu token) ───────────────────────────────────────────

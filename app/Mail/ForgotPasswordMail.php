@@ -13,21 +13,15 @@ class ForgotPasswordMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public string $resetUrl;
+    public string $otp;
     public string $namaUser;
-    public string $expiredInfo;
 
     public function __construct(
         public User   $user,
         public string $plainToken
     ) {
-        // URL ini mengarah ke frontend (web/mobile) yang punya halaman reset form
-        // Frontend lalu POST ke /api/auth/reset-password dengan token + email + password baru
-        $frontendUrl    = config('app.frontend_url', config('app.url'));
-        $this->resetUrl = "{$frontendUrl}/reset-password?token={$plainToken}&email={$user->email}";
-
-        $this->namaUser   = $user->nama_lengkap;
-        $this->expiredInfo = '15 menit';
+        $this->namaUser = $user->nama_lengkap;
+        $this->otp      = $plainToken;
     }
 
     public function envelope(): Envelope

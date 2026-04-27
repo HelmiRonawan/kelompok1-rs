@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AntrianController;
 use App\Http\Controllers\Api\PasienController;
 use App\Http\Controllers\Api\PendaftaranController;
+use App\Http\Controllers\Api\UnitController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -93,3 +94,7 @@ Route::middleware('auth:api')->group(function () {
             ->middleware('role:pasien');
     });
 });
+
+// ── Publik Unit Pemeriksaan ───────
+Route::get('units',     [UnitController::class, 'index']);
+Route::get('units/{id}',[UnitController::class, 'show']);

@@ -43,6 +43,8 @@ tags:
     description: Pendaftaran kunjungan ke unit pemeriksaan
   - name: Antrian
     description: Nomor antrian & pemanggilan
+  - name: Unit Pemeriksaan
+    description: Master data unit pemeriksaan (PUBLIC)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECURITY
@@ -1051,3 +1053,83 @@ paths:
       responses:
         "200":
           description: List antrian pasien hari ini
+
+# ═══════════════════════════════════════════════════════════════════════════
+  # UNIT PEMERIKSAAN
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /units:
+    get:
+      tags: [Unit Pemeriksaan]
+      summary: List semua unit pemeriksaan (PUBLIC)
+      description: |
+        **Tidak perlu token.** Dipakai semua kelompok untuk ambil data unit.
+
+        Kelompok 2 pakai untuk assign dokter/perawat ke unit.
+        Kelompok 3 & 4 pakai untuk referensi unit saat proses kasir/apotik.
+      responses:
+        "200":
+          description: List unit aktif
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:        { type: integer, example: 1 }
+                        kode_unit: { type: string, example: MATA }
+                        nama_unit: { type: string, example: Mata }
+              example:
+                success: true
+                data:
+                  - { id: 1,  kode_unit: MATA,   nama_unit: Mata }
+                  - { id: 2,  kode_unit: GIGI,   nama_unit: Gigi }
+                  - { id: 3,  kode_unit: PDALAM, nama_unit: Penyakit Dalam }
+                  - { id: 4,  kode_unit: JNTG,   nama_unit: Jantung }
+                  - { id: 5,  kode_unit: BEDAH,  nama_unit: Bedah }
+                  - { id: 6,  kode_unit: KIA,    nama_unit: KIA }
+                  - { id: 7,  kode_unit: ANAK,   nama_unit: Anak }
+                  - { id: 8,  kode_unit: REHAB,  nama_unit: Rehab Medik }
+                  - { id: 9,  kode_unit: SARAF,  nama_unit: Saraf }
+                  - { id: 10, kode_unit: PARU,   nama_unit: Paru }
+                  - { id: 11, kode_unit: KULIT,  nama_unit: Kulit }
+                  - { id: 12, kode_unit: THT,    nama_unit: THT }
+                  - { id: 13, kode_unit: JIWA,   nama_unit: Jiwa }
+
+  /units/{id}:
+    get:
+      tags: [Unit Pemeriksaan]
+      summary: Detail unit pemeriksaan (PUBLIC)
+      description: Tidak perlu token.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          example: 1
+      responses:
+        "200":
+          description: Detail unit
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      id:        { type: integer, example: 1 }
+                      kode_unit: { type: string, example: MATA }
+                      nama_unit: { type: string, example: Mata }
+                      is_active: { type: boolean, example: true }
+        "404":
+          description: Unit tidak ditemukan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }

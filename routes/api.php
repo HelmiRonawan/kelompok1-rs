@@ -19,7 +19,7 @@ Route::prefix('auth')->group(function () {
 
     // Login & Token
     Route::post('login',         [AuthController::class, 'login']);
-    Route::post('verify-token',  [AuthController::class, 'verifyToken']); // untuk kelompok 2,3,4
+    Route::post('verify-token',  [AuthController::class, 'verifyToken']);
 
     // Register Pasien Mandiri
     Route::post('register',      [AuthController::class, 'register']);
@@ -41,7 +41,7 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::get('me',       [AuthController::class, 'me']);
 });
 
-// ── Display Antrian (Public — monitor di ruang tunggu) ────────────────────
+// ── Display Antrian (Public) ────────────────────
 Route::get('antrian/unit/{unitId}/display', [AntrianController::class, 'display']);
 
 // ── Protected Routes ───────────────────────────────────────────────────────
@@ -98,3 +98,15 @@ Route::middleware('auth:api')->group(function () {
 // ── Publik Unit Pemeriksaan ───────
 Route::get('units',     [UnitController::class, 'index']);
 Route::get('units/{id}',[UnitController::class, 'show']);
+
+// Public
+Route::get('units',      [UnitController::class, 'index']);
+Route::get('units/{id}', [UnitController::class, 'show']);
+
+// Superadmin only
+Route::middleware('auth:api')->group(function () {
+    Route::post('units',          [UnitController::class, 'store'])
+        ->middleware('role:superadmin');
+    Route::put('units/{id}',      [UnitController::class, 'update'])
+        ->middleware('role:superadmin');
+});

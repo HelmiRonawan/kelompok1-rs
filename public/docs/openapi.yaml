@@ -1059,11 +1059,7 @@ paths:
     get:
       tags: [Unit Pemeriksaan]
       summary: List semua unit pemeriksaan (PUBLIC)
-      description: |
-        **Tidak perlu token.** Dipakai semua kelompok untuk ambil data unit.
-
-        Kelompok 2 pakai untuk assign dokter/perawat ke unit.
-        Kelompok 3 & 4 pakai untuk referensi unit saat proses kasir/apotik.
+      description: Tidak perlu token. Dipakai semua kelompok untuk ambil data unit.
       responses:
         "200":
           description: List unit aktif
@@ -1081,22 +1077,58 @@ paths:
                         id:        { type: integer, example: 1 }
                         kode_unit: { type: string, example: MATA }
                         nama_unit: { type: string, example: Mata }
-              example:
-                success: true
-                data:
-                  - { id: 1,  kode_unit: MATA,   nama_unit: Mata }
-                  - { id: 2,  kode_unit: GIGI,   nama_unit: Gigi }
-                  - { id: 3,  kode_unit: PDALAM, nama_unit: Penyakit Dalam }
-                  - { id: 4,  kode_unit: JNTG,   nama_unit: Jantung }
-                  - { id: 5,  kode_unit: BEDAH,  nama_unit: Bedah }
-                  - { id: 6,  kode_unit: KIA,    nama_unit: KIA }
-                  - { id: 7,  kode_unit: ANAK,   nama_unit: Anak }
-                  - { id: 8,  kode_unit: REHAB,  nama_unit: Rehab Medik }
-                  - { id: 9,  kode_unit: SARAF,  nama_unit: Saraf }
-                  - { id: 10, kode_unit: PARU,   nama_unit: Paru }
-                  - { id: 11, kode_unit: KULIT,  nama_unit: Kulit }
-                  - { id: 12, kode_unit: THT,    nama_unit: THT }
-                  - { id: 13, kode_unit: JIWA,   nama_unit: Jiwa }
+
+    post:
+      tags: [Unit Pemeriksaan]
+      summary: Tambah unit baru (Superadmin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kode_unit, nama_unit]
+              properties:
+                kode_unit:
+                  type: string
+                  maxLength: 10
+                  example: ORTHO
+                nama_unit:
+                  type: string
+                  example: Ortopedi
+                deskripsi:
+                  type: string
+                  nullable: true
+                  example: Unit penanganan tulang dan sendi
+      responses:
+        "201":
+          description: Unit berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Unit berhasil ditambahkan. }
+                  data:
+                    type: object
+                    properties:
+                      id:        { type: integer }
+                      kode_unit: { type: string }
+                      nama_unit: { type: string }
+                      is_active: { type: boolean }
+        "403":
+          description: Bukan superadmin
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        "422":
+          description: Validasi gagal (kode_unit sudah ada)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
 
   /units/{id}:
     get:
@@ -1125,6 +1157,70 @@ paths:
                       kode_unit: { type: string, example: MATA }
                       nama_unit: { type: string, example: Mata }
                       is_active: { type: boolean, example: true }
+        "404":
+          description: Unit tidak ditemukan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+    put:
+      tags: [Unit Pemeriksaan]
+      summary: Update unit (Superadmin only)
+      description: Bisa dipakai untuk nonaktifkan unit sementara via `is_active = false`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nama_unit:
+                  type: string
+                  example: Mata & Refraksi
+                deskripsi:
+                  type: string
+                  nullable: true
+                is_active:
+                  type: boolean
+                  example: false
+                  description: false = nonaktifkan unit sementara
+            examples:
+              Ubah Nama:
+                value: { nama_unit: Mata & Refraksi }
+              Nonaktifkan Unit:
+                value: { is_active: false }
+              Aktifkan Kembali:
+                value: { is_active: true }
+      responses:
+        "200":
+          description: Unit berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: Unit berhasil diupdate. }
+                  data:
+                    type: object
+                    properties:
+                      id:        { type: integer }
+                      kode_unit: { type: string }
+                      nama_unit: { type: string }
+                      is_active: { type: boolean }
+        "403":
+          description: Bukan superadmin
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         "404":
           description: Unit tidak ditemukan
           content:

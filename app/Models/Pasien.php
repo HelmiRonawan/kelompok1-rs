@@ -15,7 +15,6 @@ class Pasien extends Model
     protected $fillable = [
         'user_id',
         'nomor_rm',
-        'nomor_kartu',
         'nik',
         'nama_lengkap',
         'jenis_kelamin',
@@ -23,9 +22,6 @@ class Pasien extends Model
         'tempat_lahir',
         'alamat',
         'no_telepon',
-        'golongan_darah',
-        'jenis_pasien',
-        'no_bpjs',
     ];
 
     protected $casts = [

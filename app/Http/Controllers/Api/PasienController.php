@@ -15,7 +15,7 @@ class PasienController extends Controller
 {
     /**
      * GET /api/pasien
-     * Perawat: cari pasien (by NIK, nomor kartu, nama)
+     * Perawat: cari pasien (by NIK, nomor RM, nama)
      */
     public function index(Request $request): JsonResponse
     {
@@ -23,7 +23,6 @@ class PasienController extends Controller
             ->when($request->search, fn($q) =>
                 $q->where('nama_lengkap', 'like', "%{$request->search}%")
                   ->orWhere('nik', $request->search)
-                  ->orWhere('nomor_kartu', $request->search)
                   ->orWhere('nomor_rm', $request->search)
             )
             ->with('user')
@@ -87,9 +86,6 @@ class PasienController extends Controller
             'tempat_lahir' => 'nullable|string|max:100',
             'alamat'       => 'nullable|string',
             'no_telepon'   => 'nullable|string|max:20',
-            'golongan_darah'=> 'nullable|in:A,B,AB,O',
-            'jenis_pasien' => 'required|in:umum,bpjs',
-            'no_bpjs'      => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
@@ -111,7 +107,6 @@ class PasienController extends Controller
             $pasien = Pasien::create(array_merge($validated, [
                 'user_id'    => $user->id,
                 'nomor_rm'   => Pasien::generateNomorRM(),
-                'nomor_kartu'=> 'RS-' . str_pad($user->id, 8, '0', STR_PAD_LEFT),
             ]));
 
             DB::commit();
@@ -148,9 +143,6 @@ class PasienController extends Controller
             'nama_lengkap' => 'sometimes|string|max:100',
             'alamat'       => 'sometimes|string',
             'no_telepon'   => 'sometimes|string|max:20',
-            'golongan_darah'=> 'sometimes|in:A,B,AB,O',
-            'no_bpjs'      => 'sometimes|nullable|string|max:20',
-            'jenis_pasien' => 'sometimes|in:umum,bpjs',
         ]);
 
         $pasien->update($validated);

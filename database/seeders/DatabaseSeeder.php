@@ -12,22 +12,22 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── Roles Semua Kelompok ───────────────────────────────────────────
+        // ── Roles ──────────────────────────────────
         $roles = [
-            // Kelompok 1 — Auth & Pendaftaran
+            // Auth & Pendaftaran
             ['nama_role' => 'superadmin',   'deskripsi' => 'Administrator sistem, bisa buat user baru'],
             ['nama_role' => 'admin_perawat','deskripsi' => 'Menerima pendaftaran dan memanggil antrian'],
             ['nama_role' => 'pasien',       'deskripsi' => 'Daftar online dan lihat status antrian'],
 
-            // Kelompok 2 — Pemeriksaan
+            // Pemeriksaan
             ['nama_role' => 'perawat',      'deskripsi' => 'Pemanggilan antrian & assessment awal pasien'],
             ['nama_role' => 'dokter',       'deskripsi' => 'Pemeriksaan, diagnosa, dan E-Resep'],
 
-            // Kelompok 3 — Kasir
+            // Kasir
             ['nama_role' => 'kasir',        'deskripsi' => 'Pemanggilan antrian & penerima pembayaran'],
             ['nama_role' => 'admin_kasir',  'deskripsi' => 'Menentukan harga jasa dan obat'],
 
-            // Kelompok 4 — Apotik
+            // Apotik
             ['nama_role' => 'apoteker',     'deskripsi' => 'Pemanggilan antrian & penyerahan obat'],
             ['nama_role' => 'admin_apotik', 'deskripsi' => 'Kelola stok, harga beli/jual obat'],
         ];
@@ -36,31 +36,31 @@ class DatabaseSeeder extends Seeder
             Role::firstOrCreate(['nama_role' => $role['nama_role']], $role);
         }
 
-        // ── Unit Pemeriksaan (13 unit sesuai diagram) ──────────────────────
+        // ── Unit Pemeriksaan ───────────────────────
         $units = [
-            ['kode_unit' => 'MATA',   'nama_unit' => 'Mata'],
-            ['kode_unit' => 'GIGI',   'nama_unit' => 'Gigi'],
-            ['kode_unit' => 'PDALAM', 'nama_unit' => 'Penyakit Dalam'],
-            ['kode_unit' => 'JNTG',   'nama_unit' => 'Jantung'],
-            ['kode_unit' => 'BEDAH',  'nama_unit' => 'Bedah'],
-            ['kode_unit' => 'KIA',    'nama_unit' => 'KIA'],
-            ['kode_unit' => 'ANAK',   'nama_unit' => 'Anak'],
-            ['kode_unit' => 'REHAB',  'nama_unit' => 'Rehab Medik'],
-            ['kode_unit' => 'SARAF',  'nama_unit' => 'Saraf'],
-            ['kode_unit' => 'PARU',   'nama_unit' => 'Paru'],
-            ['kode_unit' => 'KULIT',  'nama_unit' => 'Kulit'],
-            ['kode_unit' => 'THT',    'nama_unit' => 'THT'],
-            ['kode_unit' => 'JIWA',   'nama_unit' => 'Jiwa'],
+            ['kode_unit' => 'A',   'nama_unit' => 'Mata'],
+            ['kode_unit' => 'B',   'nama_unit' => 'Gigi'],
+            ['kode_unit' => 'C', 'nama_unit' => 'Penyakit Dalam'],
+            ['kode_unit' => 'D',   'nama_unit' => 'Jantung'],
+            ['kode_unit' => 'E',  'nama_unit' => 'Bedah'],
+            ['kode_unit' => 'F',    'nama_unit' => 'KIA'],
+            ['kode_unit' => 'G',   'nama_unit' => 'Anak'],
+            ['kode_unit' => 'H',  'nama_unit' => 'Rehab Medik'],
+            ['kode_unit' => 'I',  'nama_unit' => 'Saraf'],
+            ['kode_unit' => 'J',   'nama_unit' => 'Paru'],
+            ['kode_unit' => 'K',  'nama_unit' => 'Kulit'],
+            ['kode_unit' => 'L',    'nama_unit' => 'THT'],
+            ['kode_unit' => 'M',   'nama_unit' => 'Jiwa'],
         ];
 
         foreach ($units as $unit) {
             UnitPemeriksaan::firstOrCreate(['kode_unit' => $unit['kode_unit']], $unit);
         }
 
-        // ── User Default per Kelompok ──────────────────────────────────────
+        // ── User Default ───────────────────────────
 
         $defaultUsers = [
-            // Kelompok 1
+            // 1
             [
                 'username'    => 'superadmin',
                 'email'       => 'ahmadhelmi2804@gmail.com',
@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
                 'roles'       => ['admin_perawat'],
             ],
 
-            // Kelompok 2
+            // 2
             [
                 'username'    => 'perawat01',
                 'email'       => 'perawat01@rs.id',
@@ -92,7 +92,7 @@ class DatabaseSeeder extends Seeder
                 'roles'       => ['dokter'],
             ],
 
-            // Kelompok 3
+            // 3
             [
                 'username'    => 'kasir01',
                 'email'       => 'kasir01@rs.id',
@@ -108,7 +108,7 @@ class DatabaseSeeder extends Seeder
                 'roles'       => ['admin_kasir'],
             ],
 
-            // Kelompok 4
+            // 4
             [
                 'username'    => 'apoteker01',
                 'email'       => 'apoteker01@rs.id',
@@ -141,18 +141,18 @@ class DatabaseSeeder extends Seeder
             $user->roles()->syncWithoutDetaching($roleIds);
         }
 
-        echo "\n✅ Seeder selesai!\n";
+        echo "\nSeeder selesai!\n";
         echo "─────────────────────────────────────────\n";
-        echo "KELOMPOK 1:\n";
+        echo "1:\n";
         echo "  superadmin    → admin12345\n";
         echo "  adminperawat01→ perawat123\n";
-        echo "KELOMPOK 2:\n";
+        echo "2:\n";
         echo "  perawat01     → perawat123\n";
         echo "  dokter01      → dokter123\n";
-        echo "KELOMPOK 3:\n";
+        echo "3:\n";
         echo "  kasir01       → kasir123\n";
         echo "  adminkasir01  → kasir123\n";
-        echo "KELOMPOK 4:\n";
+        echo "4:\n";
         echo "  apoteker01    → apotik123\n";
         echo "  adminapotik01 → apotik123\n";
         echo "─────────────────────────────────────────\n";

@@ -291,7 +291,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // ── VERIFY TOKEN (untuk kelompok 2, 3, 4) ─────────────────────────────
+    // ── VERIFY TOKEN ─────────────────────────────
 
     public function verifyToken(): JsonResponse
     {

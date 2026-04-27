@@ -101,13 +101,10 @@ components:
       properties:
         id:             { type: integer, example: 1 }
         nomor_rm:       { type: string, example: RM-000001 }
-        nomor_kartu:    { type: string, example: RS-00000001 }
         nik:            { type: string, example: "3201234567890001" }
         nama_lengkap:   { type: string, example: Budi Santoso }
         jenis_kelamin:  { type: string, enum: [L, P], example: L }
         tanggal_lahir:  { type: string, format: date, example: "1990-05-20" }
-        jenis_pasien:   { type: string, enum: [umum, bpjs], example: umum }
-        no_bpjs:        { type: string, nullable: true }
 
     # ── Antrian ──────────────────────────────────────────────────────────────
     Antrian:
@@ -143,7 +140,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [nik, nama_lengkap, email, password, password_confirmation, tanggal_lahir, jenis_kelamin, jenis_pasien]
+              required: [nik, nama_lengkap, email, password, password_confirmation, tanggal_lahir, jenis_kelamin]
               properties:
                 nik:
                   type: string

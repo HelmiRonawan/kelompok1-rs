@@ -178,14 +178,6 @@ paths:
                 no_telepon:
                   type: string
                   example: "08123456789"
-                jenis_pasien:
-                  type: string
-                  enum: [umum, bpjs]
-                  example: umum
-                no_bpjs:
-                  type: string
-                  example: "0001234567890"
-                  description: Wajib jika jenis_pasien = bpjs
       responses:
         "201":
           description: Registrasi berhasil, cek email
@@ -674,14 +666,14 @@ paths:
     get:
       tags: [Pasien]
       summary: Cari / list pasien
-      description: Bisa cari by nama, NIK, nomor kartu, atau nomor RM.
+      description: Bisa cari by nama, NIK, atau nomor RM.
       security:
         - bearerAuth: []
       parameters:
         - name: search
           in: query
           schema: { type: string }
-          description: Nama / NIK / nomor kartu / nomor RM
+          description: Nama / NIK / nomor RM
       responses:
         "200":
           description: List pasien dengan pagination
@@ -702,7 +694,7 @@ paths:
           application/json:
             schema:
               type: object
-              required: [nik, nama_lengkap, jenis_kelamin, tanggal_lahir, jenis_pasien]
+              required: [nik, nama_lengkap, jenis_kelamin, tanggal_lahir]
               properties:
                 nik:           { type: string, minLength: 16, maxLength: 16 }
                 nama_lengkap:  { type: string }
@@ -711,9 +703,6 @@ paths:
                 tempat_lahir:  { type: string }
                 alamat:        { type: string }
                 no_telepon:    { type: string }
-                golongan_darah: { type: string, enum: [A, B, AB, O] }
-                jenis_pasien:  { type: string, enum: [umum, bpjs] }
-                no_bpjs:       { type: string }
       responses:
         "201":
           description: Pasien berhasil didaftarkan
@@ -776,9 +765,6 @@ paths:
                 nama_lengkap:  { type: string }
                 alamat:        { type: string }
                 no_telepon:    { type: string }
-                golongan_darah: { type: string }
-                jenis_pasien:  { type: string, enum: [umum, bpjs] }
-                no_bpjs:       { type: string }
       responses:
         "200":
           description: Data diupdate

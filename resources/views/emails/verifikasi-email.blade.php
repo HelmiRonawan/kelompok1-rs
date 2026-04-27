@@ -71,7 +71,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>🏥 Rumah Sakit — Verifikasi Email</h1>
+        <h1>Rumah Sakit — Verifikasi Email</h1>
         <p>Sistem Informasi Manajemen Rumah Sakit</p>
     </div>
 
@@ -98,7 +98,7 @@
     </div>
 
     <div class="warning-box">
-        ⏰ Kode OTP berlaku <strong>10 menit</strong>.
+        Kode OTP berlaku <strong>10 menit</strong>.
         Jangan berikan kode ini ke siapapun.
     </div>
 

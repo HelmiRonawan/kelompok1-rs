@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Kelompok 1: Auth & Pendaftaran — API Routes (v3: + register + verifikasi email)
+| Kelompok 1: Auth & Pendaftaran — API Routes
 |--------------------------------------------------------------------------
 */
 

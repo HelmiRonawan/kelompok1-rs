@@ -32,8 +32,6 @@ class AuthController extends Controller
             'tempat_lahir'        => 'nullable|string|max:100',
             'alamat'              => 'nullable|string',
             'no_telepon'          => 'nullable|string|max:20',
-            'jenis_pasien'        => 'required|in:umum,bpjs',
-            'no_bpjs'             => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
@@ -41,7 +39,7 @@ class AuthController extends Controller
             // 1. Generate otp untuk verifikasi email (6 digit angka)
             $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT); // 000000 - 999999
 
-            // 2. Buat akun user — Token disimpan TANPA Hash agar stabil di URL
+            // 2. Buat akun user - status awal nonaktif, simpan token OTP yang sudah di-hash
             $user = User::create([
                 'username'                 => $validated['nik'],
                 'email'                    => $validated['email'],
@@ -63,7 +61,6 @@ class AuthController extends Controller
             $pasien = Pasien::create([
                 'user_id'       => $user->id,
                 'nomor_rm'      => Pasien::generateNomorRM(),
-                'nomor_kartu'   => 'RS-' . str_pad($user->id, 8, '0', STR_PAD_LEFT),
                 'nik'           => $validated['nik'],
                 'nama_lengkap'  => $validated['nama_lengkap'],
                 'jenis_kelamin' => $validated['jenis_kelamin'],
@@ -71,11 +68,9 @@ class AuthController extends Controller
                 'tempat_lahir'  => $validated['tempat_lahir'] ?? null,
                 'alamat'        => $validated['alamat'] ?? null,
                 'no_telepon'    => $validated['no_telepon'] ?? null,
-                'jenis_pasien'  => $validated['jenis_pasien'],
-                'no_bpjs'       => $validated['no_bpjs'] ?? null,
             ]);
 
-            // 5. Kirim email verifikasi (Kirim token asli)
+            // 5. Kirim email verifikasi (Kirim OTP asli)
             Mail::to($user->email)->send(new VerifikasiEmailMail($user, $otp));
 
             DB::commit();
@@ -105,7 +100,7 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp'   => 'required|string|size:6', // ← ganti dari token ke otp
+            'otp'   => 'required|string|size:6',
         ]);
 
         $user = User::where('email', $request->email)->first();

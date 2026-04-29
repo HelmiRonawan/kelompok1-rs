@@ -14,9 +14,7 @@ return new class extends Migration
             $table->string('nomor_pendaftaran')->unique(); // e.g. PEND-20240101-0001
             $table->foreignId('pasien_id')->constrained('pasien')->onDelete('cascade');
             $table->foreignId('unit_id')->constrained('unit_pemeriksaan')->onDelete('cascade');
-            $table->foreignId('didaftarkan_oleh')->constrained('users')->onDelete('cascade'); // perawat/pasien sendiri
             $table->date('tanggal_kunjungan');
-            $table->enum('jenis_pendaftaran', ['langsung', 'online'])->default('langsung');
             $table->enum('status', [
                 'terdaftar',      // baru daftar
                 'dipanggil',      // antrian dipanggil ke unit
@@ -36,7 +34,7 @@ return new class extends Migration
             $table->foreignId('unit_id')->constrained('unit_pemeriksaan')->onDelete('cascade');
             $table->date('tanggal');
             $table->integer('nomor_antrian');
-            $table->string('kode_antrian', 20); // e.g. MATA-001
+            $table->string('kode_antrian', 20); // e.g. A-001
             $table->enum('status', [
                 'menunggu',
                 'dipanggil',
@@ -45,7 +43,6 @@ return new class extends Migration
                 'tidak_hadir'
             ])->default('menunggu');
             $table->timestamp('waktu_panggil')->nullable();
-            $table->foreignId('dipanggil_oleh')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
 
             // Satu pendaftaran = satu antrian per unit

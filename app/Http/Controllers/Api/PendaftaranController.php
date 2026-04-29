@@ -42,7 +42,7 @@ class PendaftaranController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'pasien_id'   => 'required|integer|exists:pasien,id',
+            'nik'   => 'required|string|exists:pasien,nik',
             'unit_id'     => 'required|integer|exists:unit_pemeriksaan,id',
             'keluhan'     => 'nullable|string|max:500',
             'jenis_pendaftaran' => 'sometimes|in:langsung,online',
@@ -52,7 +52,7 @@ class PendaftaranController extends Controller
         $tanggal = today()->toDateString();
 
         // Cegah double daftar hari ini di unit yang sama
-        $sudahDaftar = Pendaftaran::where('pasien_id', $validated['pasien_id'])
+        $sudahDaftar = Pendaftaran::where('pasien_id', Pasien::where('nik', $validated['nik'])->first()->id)
             ->where('unit_id', $validated['unit_id'])
             ->where('tanggal_kunjungan', $tanggal)
             ->exists();
@@ -78,7 +78,7 @@ class PendaftaranController extends Controller
             // Buat pendaftaran
             $pendaftaran = Pendaftaran::create([
                 'nomor_pendaftaran'  => Pendaftaran::generateNomor($tanggal),
-                'pasien_id'         => $validated['pasien_id'],
+                'pasien_id'         => Pasien::where('nik', $validated['nik'])->first()->id,
                 'unit_id'           => $validated['unit_id'],
                 'didaftarkan_oleh'  => $user->id,
                 'tanggal_kunjungan' => $tanggal,

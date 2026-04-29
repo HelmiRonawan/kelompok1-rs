@@ -811,11 +811,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [pasien_id, unit_id]
+              required: [nik, unit_id]
               properties:
-                pasien_id:
-                  type: integer
-                  example: 1
+                nik:
+                  type: string
+                  minLength: 16
+                  maxLength: 16
                 unit_id:
                   type: integer
                   example: 1
@@ -823,10 +824,6 @@ paths:
                 keluhan:
                   type: string
                   example: Mata terasa perih dan merah
-                jenis_pendaftaran:
-                  type: string
-                  enum: [langsung, online]
-                  default: langsung
       responses:
         "201":
           description: Pendaftaran berhasil + nomor antrian
@@ -841,7 +838,7 @@ paths:
                     type: object
                     properties:
                       nomor: { type: integer, example: 1 }
-                      kode:  { type: string, example: MATA-001 }
+                      kode:  { type: string, example: A-001 }
                       unit:  { type: string, example: Mata }
         "422":
           description: Pasien sudah terdaftar di unit ini hari ini

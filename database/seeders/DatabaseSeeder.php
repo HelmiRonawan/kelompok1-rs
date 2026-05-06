@@ -12,31 +12,24 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── Roles ──────────────────────────────────
+        // ── Roles ──────────────────────────────────────────────────────────
         $roles = [
-            // Auth & Pendaftaran
-            ['nama_role' => 'superadmin',   'deskripsi' => 'Administrator sistem, bisa buat user baru'],
-            ['nama_role' => 'admin_perawat','deskripsi' => 'Menerima pendaftaran dan memanggil antrian'],
-            ['nama_role' => 'pasien',       'deskripsi' => 'Daftar online dan lihat status antrian'],
-
-            // Pemeriksaan
-            ['nama_role' => 'perawat',      'deskripsi' => 'Pemanggilan antrian & assessment awal pasien'],
-            ['nama_role' => 'dokter',       'deskripsi' => 'Pemeriksaan, diagnosa, dan E-Resep'],
-
-            // Kasir
-            ['nama_role' => 'kasir',        'deskripsi' => 'Pemanggilan antrian & penerima pembayaran'],
-            ['nama_role' => 'admin_kasir',  'deskripsi' => 'Menentukan harga jasa dan obat'],
-
-            // Apotik
-            ['nama_role' => 'apoteker',     'deskripsi' => 'Pemanggilan antrian & penyerahan obat'],
-            ['nama_role' => 'admin_apotik', 'deskripsi' => 'Kelola stok, harga beli/jual obat'],
+            ['nama_role' => 'superadmin',    'deskripsi' => 'Administrator sistem'],
+            ['nama_role' => 'admin_perawat', 'deskripsi' => 'Pendaftaran & antrian langsung'],
+            ['nama_role' => 'pasien',        'deskripsi' => 'Daftar online & lihat antrian'],
+            ['nama_role' => 'perawat',       'deskripsi' => 'Pemanggilan & assessment'],
+            ['nama_role' => 'dokter',        'deskripsi' => 'Pemeriksaan & E-Resep'],
+            ['nama_role' => 'kasir',         'deskripsi' => 'Pembayaran & antrian kasir'],
+            ['nama_role' => 'admin_kasir',   'deskripsi' => 'Kelola harga'],
+            ['nama_role' => 'apoteker',      'deskripsi' => 'Penyerahan obat'],
+            ['nama_role' => 'admin_apotik',  'deskripsi' => 'Kelola stok & harga obat'],
         ];
 
         foreach ($roles as $role) {
             Role::firstOrCreate(['nama_role' => $role['nama_role']], $role);
         }
 
-        // ── Unit Pemeriksaan ───────────────────────
+        // ── Unit Pemeriksaan ───────────────────────────────────────────────
         $units = [
             ['kode_unit' => 'A',   'nama_unit' => 'Mata'],
             ['kode_unit' => 'B',   'nama_unit' => 'Gigi'],
@@ -57,104 +50,46 @@ class DatabaseSeeder extends Seeder
             UnitPemeriksaan::firstOrCreate(['kode_unit' => $unit['kode_unit']], $unit);
         }
 
-        // ── User Default ───────────────────────────
-
-        $defaultUsers = [
-            // 1
-            [
-                'username'    => 'superadmin',
-                'email'       => 'ahmadhelmi2804@gmail.com',
-                'password'    => 'admin12345',
-                'nama_lengkap'=> 'Super Administrator',
-                'roles'       => ['superadmin'],
-            ],
-            [
-                'username'    => 'adminperawat01',
-                'email'       => 'adminperawat01@rs.id',
-                'password'    => 'perawat123',
-                'nama_lengkap'=> 'Admin Perawat Satu',
-                'roles'       => ['admin_perawat'],
-            ],
-
-            // 2
-            [
-                'username'    => 'perawat01',
-                'email'       => 'perawat01@rs.id',
-                'password'    => 'perawat123',
-                'nama_lengkap'=> 'Perawat Satu',
-                'roles'       => ['perawat'],
-            ],
-            [
-                'username'    => 'dokter01',
-                'email'       => 'dokter01@rs.id',
-                'password'    => 'dokter123',
-                'nama_lengkap'=> 'Dr. Budi Santoso',
-                'roles'       => ['dokter'],
-            ],
-
-            // 3
-            [
-                'username'    => 'kasir01',
-                'email'       => 'kasir01@rs.id',
-                'password'    => 'kasir123',
-                'nama_lengkap'=> 'Kasir Satu',
-                'roles'       => ['kasir'],
-            ],
-            [
-                'username'    => 'adminkasir01',
-                'email'       => 'adminkasir01@rs.id',
-                'password'    => 'kasir123',
-                'nama_lengkap'=> 'Admin Kasir Satu',
-                'roles'       => ['admin_kasir'],
-            ],
-
-            // 4
-            [
-                'username'    => 'apoteker01',
-                'email'       => 'apoteker01@rs.id',
-                'password'    => 'apotik123',
-                'nama_lengkap'=> 'Apoteker Satu',
-                'roles'       => ['apoteker'],
-            ],
-            [
-                'username'    => 'adminapotik01',
-                'email'       => 'adminapotik01@rs.id',
-                'password'    => 'apotik123',
-                'nama_lengkap'=> 'Admin Apotik Satu',
-                'roles'       => ['admin_apotik'],
-            ],
+        // ── User Default ───────────────────────────────────────────────────
+        $users = [
+            // Kelompok 1
+            ['email' => 'freejpgtopng1@gmail.com',      'password' => 'admin12345',  'nama' => 'Super Administrator',  'roles' => ['superadmin']],
+            ['email' => 'adminperawat@rs.id',     'password' => 'perawat123',  'nama' => 'Admin Perawat',        'roles' => ['admin_perawat']],
+            // Kelompok 2
+            ['email' => 'perawat01@rs.id',        'password' => 'perawat123',  'nama' => 'Perawat Satu',         'roles' => ['perawat']],
+            ['email' => 'dokter01@rs.id',         'password' => 'dokter123',   'nama' => 'Dr. Budi Santoso',     'roles' => ['dokter']],
+            // Kelompok 3
+            ['email' => 'kasir01@rs.id',          'password' => 'kasir123',    'nama' => 'Kasir Satu',           'roles' => ['kasir']],
+            ['email' => 'adminkasir@rs.id',       'password' => 'kasir123',    'nama' => 'Admin Kasir',          'roles' => ['admin_kasir']],
+            // Kelompok 4
+            ['email' => 'apoteker01@rs.id',       'password' => 'apotik123',   'nama' => 'Apoteker Satu',        'roles' => ['apoteker']],
+            ['email' => 'adminapotik@rs.id',      'password' => 'apotik123',   'nama' => 'Admin Apotik',         'roles' => ['admin_apotik']],
         ];
 
-        foreach ($defaultUsers as $data) {
+        foreach ($users as $data) {
             $user = User::firstOrCreate(
-                ['username' => $data['username']],
+                ['email' => $data['email']],
                 [
-                    'email'             => $data['email'],
                     'password'          => Hash::make($data['password']),
-                    'nama_lengkap'      => $data['nama_lengkap'],
                     'is_active'         => true,
-                    'email_verified_at' => now(), // staff tidak perlu verifikasi email
+                    'email_verified_at' => now(),
                 ]
             );
-
             $roleIds = Role::whereIn('nama_role', $data['roles'])->pluck('id');
             $user->roles()->syncWithoutDetaching($roleIds);
         }
 
         echo "\nSeeder selesai!\n";
-        echo "─────────────────────────────────────────\n";
-        echo "1:\n";
-        echo "  superadmin    → admin12345\n";
-        echo "  adminperawat01→ perawat123\n";
-        echo "2:\n";
-        echo "  perawat01     → perawat123\n";
-        echo "  dokter01      → dokter123\n";
-        echo "3:\n";
-        echo "  kasir01       → kasir123\n";
-        echo "  adminkasir01  → kasir123\n";
-        echo "4:\n";
-        echo "  apoteker01    → apotik123\n";
-        echo "  adminapotik01 → apotik123\n";
-        echo "─────────────────────────────────────────\n";
+        echo "─────────────────────────────────────────────────────\n";
+        echo "LOGIN PAKAI EMAIL:\n";
+        echo "  freejpgtopng1@gmail.com      → admin12345  (superadmin)\n";
+        echo "  adminperawat@rs.id    → perawat123  (admin_perawat)\n";
+        echo "  perawat01@rs.id       → perawat123  (perawat - kelompok 2)\n";
+        echo "  dokter01@rs.id        → dokter123   (dokter - kelompok 2)\n";
+        echo "  kasir01@rs.id         → kasir123    (kasir - kelompok 3)\n";
+        echo "  adminkasir@rs.id      → kasir123    (admin_kasir - kelompok 3)\n";
+        echo "  apoteker01@rs.id      → apotik123   (apoteker - kelompok 4)\n";
+        echo "  adminapotik@rs.id     → apotik123   (admin_apotik - kelompok 4)\n";
+        echo "─────────────────────────────────────────────────────\n";
     }
 }

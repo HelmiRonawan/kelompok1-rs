@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\ForgotPasswordMail;
 use App\Mail\VerifikasiEmailMail;
-use App\Models\Pasien;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -18,88 +17,77 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
-    // ── REGISTER PASIEN MANDIRI ────────────────────────────────────────────
+    // ── REGISTER ───────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/auth/register
+     *
+     * Register hanya butuh email.
+     * Data lengkap pasien diisi saat pendaftaran antrian.
+     *
+     * Body: { email }
+     */
     public function register(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'nik'                 => 'required|string|size:16|unique:pasien,nik',
-            'nama_lengkap'        => 'required|string|max:100',
-            'email'               => 'required|email|unique:users,email',
-            'password'            => 'required|string|min:8|confirmed',
-            'password_confirmation'=> 'required|string',
-            'tanggal_lahir'       => 'required|date',
-            'jenis_kelamin'       => 'required|in:L,P',
-            'tempat_lahir'        => 'nullable|string|max:100',
-            'alamat'              => 'nullable|string',
-            'no_telepon'          => 'nullable|string|max:20',
+        $request->validate([
+            'email'                 => 'required|email|unique:users,email'
         ]);
 
         DB::beginTransaction();
         try {
-            // 1. Generate otp untuk verifikasi email (6 digit angka)
-            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT); // 000000 - 999999
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-            // 2. Buat akun user - status awal nonaktif, simpan token OTP yang sudah di-hash
             $user = User::create([
-                'username'                 => $validated['nik'],
-                'email'                    => $validated['email'],
-                'password'                 => Hash::make($validated['password']),
-                'nama_lengkap'             => $validated['nama_lengkap'],
-                'is_active'                => false, 
+                'email'                    => $request->email,
+                'password'                 => Hash::make(Str::random(32)),
+                'is_active'                => false,
                 'email_verification_token' => hash('sha256', $otp),
                 'email_verified_at'        => null,
-                'otp_expired_at'           => now()->addMinutes(10), // expired 10 menit
+                'otp_expired_at'           => now()->addMinutes(10),
             ]);
 
-            // 3. Assign role pasien
+            // Assign role pasien
             $pasienRole = Role::where('nama_role', 'pasien')->first();
             if ($pasienRole) {
                 $user->roles()->attach($pasienRole->id);
             }
 
-            // 4. Buat data pasien
-            $pasien = Pasien::create([
-                'user_id'       => $user->id,
-                'nomor_rm'      => Pasien::generateNomorRM(),
-                'nik'           => $validated['nik'],
-                'nama_lengkap'  => $validated['nama_lengkap'],
-                'jenis_kelamin' => $validated['jenis_kelamin'],
-                'tanggal_lahir' => $validated['tanggal_lahir'],
-                'tempat_lahir'  => $validated['tempat_lahir'] ?? null,
-                'alamat'        => $validated['alamat'] ?? null,
-                'no_telepon'    => $validated['no_telepon'] ?? null,
-            ]);
-
-            // 5. Kirim email verifikasi (Kirim OTP asli)
             Mail::to($user->email)->send(new VerifikasiEmailMail($user, $otp));
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Registrasi berhasil! Cek email kamu untuk verifikasi akun.',
-                'data'    => [
-                    'username'  => $user->username,
-                    'email'     => $user->email,
-                    'nomor_rm'  => $pasien->nomor_rm,
-                ],
+                'message' => 'Registrasi berhasil! Cek email untuk kode OTP verifikasi.',
+                'data'    => ['email' => $user->email],
             ], 201);
 
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Registrasi gagal. Coba lagi.',
+                'message' => 'Registrasi gagal.',
                 'error'   => app()->isLocal() ? $e->getMessage() : null,
             ], 500);
         }
     }
 
     // ── VERIFIKASI EMAIL ───────────────────────────────────────────────────
+
+    /**
+     * POST /api/auth/verify-email
+     * 
+     * Verifikasi email sekaligus set password baru.
+     * OTP hanya berlaku 10 menit sejak registrasi atau request ulang.
+     * 
+     * Body: { email, otp, password, password_confirmation }
+     */
     public function verifyEmail(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email',
+            'password'              => 'required|string|min:8|confirmed',
+            'password_confirmation' => 'required|string',
             'otp'   => 'required|string|size:6',
         ]);
 
@@ -113,23 +101,16 @@ class AuthController extends Controller
             return response()->json(['success' => true, 'message' => 'Email sudah diverifikasi. Silakan login.']);
         }
 
-        // Cek expired
         if (!$user->otp_expired_at || now()->isAfter($user->otp_expired_at)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP sudah expired. Minta kirim ulang.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'OTP sudah expired. Minta kirim ulang.'], 422);
         }
 
-        // Cek OTP
         if (!$user->email_verification_token || $user->email_verification_token !== hash('sha256', $request->otp)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP tidak valid.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'OTP tidak valid.'], 422);
         }
 
         $user->update([
+            'password'                 => Hash::make($request->password),
             'is_active'                => true,
             'email_verified_at'        => now(),
             'email_verification_token' => null,
@@ -140,20 +121,26 @@ class AuthController extends Controller
     }
 
     // ── RESEND VERIFICATION ────────────────────────────────────────────────
+
+    /**
+     * POST /api/auth/resend-verification
+     * Body: { email }
+     */
     public function resendVerification(Request $request): JsonResponse
     {
         $request->validate(['email' => 'required|email']);
+
         $user = User::where('email', $request->email)->first();
 
         if (!$user || $user->email_verified_at) {
-            return response()->json(['success' => true, 'message' => 'Link baru akan dikirim jika email valid.']);
+            return response()->json(['success' => true, 'message' => 'Jika email belum diverifikasi, OTP baru akan dikirim.']);
         }
 
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $user->update([
             'email_verification_token' => hash('sha256', $otp),
             'otp_expired_at'           => now()->addMinutes(10),
-            ]); // update token dan expired baru
+        ]);
 
         try {
             Mail::to($user->email)->send(new VerifikasiEmailMail($user, $otp));
@@ -161,45 +148,42 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Gagal mengirim email.'], 500);
         }
 
-        return response()->json(['success' => true, 'message' => 'Link verifikasi baru telah dikirim.']);
+        return response()->json(['success' => true, 'message' => 'OTP baru telah dikirim ke email.']);
     }
 
     // ── LOGIN ──────────────────────────────────────────────────────────────
 
     /**
      * POST /api/auth/login
+     *
+     * Login pakai EMAIL (bukan username).
+     * Body: { email, password, remember_me? }
      */
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'username'    => 'required|string',
+            'email'       => 'required|email',
             'password'    => 'required|string',
             'remember_me' => 'sometimes|boolean',
         ]);
 
-        $user = User::with('roles')->where('username', $request->username)->first();
+        $user = User::with('roles')->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Username atau password salah.',
-            ], 401);
+            return response()->json(['success' => false, 'message' => 'Email atau password salah.'], 401);
         }
 
-        // Cek apakah email sudah diverifikasi (khusus pasien yang daftar mandiri)
+        // Cek verifikasi email (khusus pasien)
         if (!$user->email_verified_at && $user->hasRole('pasien')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Email belum diverifikasi. Cek inbox Gmail kamu atau minta kirim ulang.',
-                'action'  => 'resend_verification', // hint untuk frontend
+                'message' => 'Email belum diverifikasi. Cek Gmail atau minta kirim ulang OTP.',
+                'action'  => 'resend_verification',
             ], 403);
         }
 
         if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun tidak aktif. Hubungi admin.',
-            ], 403);
+            return response()->json(['success' => false, 'message' => 'Akun tidak aktif. Hubungi admin.'], 403);
         }
 
         $rememberMe = $request->boolean('remember_me', false);
@@ -220,10 +204,9 @@ class AuthController extends Controller
                 'remember_me' => $rememberMe,
                 'user'        => [
                     'id'          => $user->id,
-                    'username'    => $user->username,
-                    'nama_lengkap'=> $user->nama_lengkap,
                     'email'       => $user->email,
                     'roles'       => $user->roles->pluck('nama_role'),
+                    'has_data_pasien' => $user->pasien()->exists(), // hint ke frontend
                 ],
             ],
         ]);
@@ -273,11 +256,10 @@ class AuthController extends Controller
             'success' => true,
             'data'    => [
                 'id'              => $user->id,
-                'username'        => $user->username,
-                'nama_lengkap'    => $user->nama_lengkap,
                 'email'           => $user->email,
                 'email_verified'  => !is_null($user->email_verified_at),
                 'roles'           => $user->roles->pluck('nama_role'),
+                'has_data_pasien' => $user->pasien()->exists(),
                 'token_info'      => [
                     'remember_me' => $payload->get('remember_me', false),
                     'expired_at'  => date('Y-m-d H:i:s', $payload->get('exp')),
@@ -286,7 +268,7 @@ class AuthController extends Controller
         ]);
     }
 
-    // ── VERIFY TOKEN ─────────────────────────────
+    // ── VERIFY TOKEN (untuk kelompok 2, 3, 4) ─────────────────────────────
 
     public function verifyToken(): JsonResponse
     {
@@ -316,10 +298,7 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'success' => true, 
-                'message' => 'Jika email terdaftar, OTP akan dikirim.'
-                ]);
+            return response()->json(['success' => true, 'message' => 'Jika email terdaftar, OTP akan dikirim.']);
         }
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
@@ -328,7 +307,6 @@ class AuthController extends Controller
 
         DB::table('password_reset_tokens')->insert([
             'email'      => $user->email,
-            'username'   => $user->username,
             'token'      => hash('sha256', $otp),
             'created_at' => now(),
             'expired_at' => now()->addMinutes(10),
@@ -342,7 +320,23 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Gagal mengirim email.'], 500);
         }
 
-        return response()->json(['success' => true, 'message' => 'OTP reset password telah dikirim ke email. Berlaku 10 menit.']);
+        return response()->json(['success' => true, 'message' => 'OTP reset password telah dikirim. Berlaku 10 menit.']);
+    }
+
+    public function checkResetToken(Request $request): JsonResponse
+    {
+        $request->validate(['email' => 'required|email', 'otp' => 'required|string|size:6']);
+
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->where('used', false)
+            ->first();
+
+        if (!$record || now()->isAfter($record->expired_at) || hash('sha256', $request->otp) !== $record->token) {
+            return response()->json(['success' => false, 'valid' => false, 'message' => 'OTP tidak valid atau expired.'], 422);
+        }
+
+        return response()->json(['success' => true, 'valid' => true, 'expired_at' => $record->expired_at]);
     }
 
     public function resetPassword(Request $request): JsonResponse
@@ -360,85 +354,23 @@ class AuthController extends Controller
             ->first();
 
         if (!$record) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP tidak valid.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'OTP tidak valid.'], 422);
         }
 
-        // Cek expired
         if (now()->isAfter($record->expired_at)) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP sudah expired. Silakan request ulang.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'OTP expired. Silakan request ulang.'], 422);
         }
 
-        // Cek OTP
         if (hash('sha256', $request->otp) !== $record->token) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP tidak valid.',
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'OTP tidak valid.'], 422);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
-        $user->update(['password' => Hash::make($request->password)]);
+        User::where('email', $request->email)->firstOrFail()
+            ->update(['password' => Hash::make($request->password)]);
 
-        DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->update(['used' => true]);
+        DB::table('password_reset_tokens')->where('email', $request->email)->update(['used' => true]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Password berhasil direset. Silakan login.',
-        ]);
-    }
-
-    public function checkResetToken(Request $request): JsonResponse
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'otp'   => 'required|string|size:6', // ← ganti dari token ke otp
-        ]);
-
-        $record = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->where('used', false)
-            ->first();
-
-        if (!$record) {
-            return response()->json([
-                'success' => false,
-                'valid'   => false,
-                'message' => 'OTP tidak valid.',
-            ], 422);
-        }
-
-        // Cek expired
-        if (now()->isAfter($record->expired_at)) {
-            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return response()->json([
-                'success' => false,
-                'valid'   => false,
-                'message' => 'OTP sudah expired. Silakan request ulang.',
-            ], 422);
-        }
-
-        // Cek OTP
-        if (hash('sha256', $request->otp) !== $record->token) {
-            return response()->json([
-                'success' => false,
-                'valid'   => false,
-                'message' => 'OTP tidak valid.',
-            ], 422);
-        }
-
-        return response()->json([
-            'success'    => true,
-            'valid'      => true,
-            'expired_at' => $record->expired_at,
-        ]);
+        return response()->json(['success' => true, 'message' => 'Password berhasil direset. Silakan login.']);
     }
 }

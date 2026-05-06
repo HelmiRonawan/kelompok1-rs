@@ -20,7 +20,7 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
         .header {
-            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            background: linear-gradient(135deg, #3bc0a8, #005461);
             color: white;
             padding: 32px 40px;
             text-align: center;
@@ -32,7 +32,7 @@
         .btn-container { text-align: center; margin: 28px 0; }
         .btn {
             display: inline-block;
-            background-color: #1a73e8;
+            background-color: #3bc0a8;
             color: #ffffff !important;
             text-decoration: none;
             padding: 14px 36px;
@@ -42,7 +42,7 @@
         }
         .warning-box {
             background-color: #e8f5e9;
-            border-left: 4px solid #43a047;
+            border-left: 4px solid #249e94;
             padding: 14px 18px;
             border-radius: 4px;
             margin: 20px 0;
@@ -71,21 +71,21 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>Rumah Sakit — Verifikasi Email</h1>
+        <h1>Rumah Sakit Viamedika — Verifikasi Email</h1>
         <p>Sistem Informasi Manajemen Rumah Sakit</p>
     </div>
 
     <div class="body">
-        <p>Halo, <strong>{{ $namaUser }}</strong>!</p>
+        <p>Halo, <strong>{{ $namaEmail }}</strong>!</p>
 
-        <p>Terima kasih sudah mendaftar. Klik tombol di bawah untuk memverifikasi
+        <p>Terima kasih sudah mendaftar. Masukkan kode OTP di bawah untuk memverifikasi
             email kamu dan mengaktifkan akun:</p>
 
         <div style="text-align: center; margin: 28px 0;">
             <p>Masukkan kode OTP berikut di aplikasi:</p>
             <div style="
             display: inline-block;
-            background: #1a73e8;
+            background: #3bc0a8;
             color: white;
             font-size: 36px;
             font-weight: bold;

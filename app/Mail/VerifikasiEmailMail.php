@@ -14,19 +14,15 @@ class VerifikasiEmailMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $verifikasiUrl;
-    public string $namaUser;
+    public string $namaEmail;
     public string $otp;
 
     public function __construct(
         public User   $user,
         public string $plainToken
     ) {
-        $this->namaUser      = $user->nama_lengkap;
+        $this->namaEmail     = $user->email;
         $this->otp           = $plainToken;
-
-        // url tidak dipakai lagi
-        $frontendUrl         = config('app.frontend_url', config('app.url'));
-        $this->verifikasiUrl = "{$frontendUrl}/verify-email?token={$plainToken}&email={$user->email}";
     }
 
     public function envelope(): Envelope

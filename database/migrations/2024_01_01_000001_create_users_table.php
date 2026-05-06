@@ -10,11 +10,12 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('username')->unique();
-            $table->string('email')->unique()->nullable();
+            $table->string('email')->unique();                          // login pakai email
             $table->string('password');
-            $table->string('nama_lengkap');
             $table->boolean('is_active')->default(true);
+            $table->string('email_verification_token', 64)->nullable();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('otp_expired_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->index();
             $table->string('token');          // hashed token
-            $table->string('username')->nullable();
+            //$table->string('username')->nullable(); HAPUS
             $table->timestamp('created_at')->nullable();
             $table->timestamp('expired_at')->nullable(); // expired 15 menit
             $table->boolean('used')->default(false);     // token hanya bisa dipakai sekali

@@ -12,10 +12,8 @@ class User extends Authenticatable implements JWTSubject
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'username',
         'email',
         'password',
-        'nama_lengkap',
         'is_active',
         'email_verification_token',
         'email_verified_at',
@@ -25,12 +23,12 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = ['password'];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'         => 'boolean',
         'email_verified_at' => 'datetime',
         'otp_expired_at'    => 'datetime',
     ];
 
-    // ── JWT Interface ──────────────────────────────────────────
+    // ── JWT ───────────────────────────────────────────────────────────────
     public function getJWTIdentifier()
     {
         return $this->getKey();
@@ -40,11 +38,11 @@ class User extends Authenticatable implements JWTSubject
     {
         return [
             'roles' => $this->roles->pluck('nama_role')->toArray(),
-            'nama'  => $this->nama_lengkap,
+            'email'  => $this->email,
         ];
     }
 
-    // ── Relasi ────────────────────────────────────────────────
+    // ── Relasi ────────────────────────────────────────────────────────────
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'user_roles');
@@ -55,7 +53,7 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasOne(Pasien::class);
     }
 
-    // ── Helper Cek Role ───────────────────────────────────────
+    // ── Helper ────────────────────────────────────────────────────────────
     public function hasRole(string $role): bool
     {
         return $this->roles->contains('nama_role', $role);

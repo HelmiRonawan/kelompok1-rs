@@ -19,7 +19,6 @@ class Pasien extends Model
         'nama_lengkap',
         'jenis_kelamin',
         'tanggal_lahir',
-        'tempat_lahir',
         'alamat',
         'no_telepon',
     ];
@@ -28,7 +27,7 @@ class Pasien extends Model
         'tanggal_lahir' => 'date',
     ];
 
-    // ── Relasi ────────────────────────────────────────────────
+    // ── Relasi ────────────────────────────────────────────────────────────
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -39,10 +38,10 @@ class Pasien extends Model
         return $this->hasMany(Pendaftaran::class);
     }
 
-    // ── Helper: Generate Nomor RM ─────────────────────────────
+    // ── Helper ────────────────────────────────────────────────────────────
     public static function generateNomorRM(): string
     {
-        $last = static::withTrashed()->latest('id')->first();
+        $last    = static::withTrashed()->latest('id')->first();
         $nextNum = $last ? ($last->id + 1) : 1;
         return 'RM-' . str_pad($nextNum, 6, '0', STR_PAD_LEFT);
     }

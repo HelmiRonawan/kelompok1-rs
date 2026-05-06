@@ -83,19 +83,18 @@ class PasienController extends Controller
             'nama_lengkap' => 'required|string|max:100',
             'jenis_kelamin'=> 'required|in:L,P',
             'tanggal_lahir'=> 'required|date',
-            'tempat_lahir' => 'nullable|string|max:100',
             'alamat'       => 'nullable|string',
             'no_telepon'   => 'nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
         try {
-            // Buat akun user otomatis (username = NIK, password = tgl lahir YYYYMMDD)
+            // Buat akun user otomatis (username = NIK, password = tgl lahir YYYYMMDD)  (REVISI)
             $defaultPassword = str_replace('-', '', $validated['tanggal_lahir']);
             $user = User::create([
                 'username'    => $validated['nik'],
                 'password'    => Hash::make($defaultPassword),
-                'nama_lengkap'=> $validated['nama_lengkap'],
+                // 'nama_lengkap'=> $validated['nama_lengkap'],
             ]);
 
             $pasienRole = Role::where('nama_role', 'pasien')->first();

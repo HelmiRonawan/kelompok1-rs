@@ -14,13 +14,13 @@ class ForgotPasswordMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $otp;
-    public string $namaUser;
+    public string $namaEmail;
 
     public function __construct(
         public User   $user,
         public string $plainToken
     ) {
-        $this->namaUser = $user->nama_lengkap;
+        $this->namaEmail = $user->email;
         $this->otp      = $plainToken;
     }
 

@@ -8,33 +8,32 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Tabel pendaftaran kunjungan
+        // Pendaftaran — hapus: didaftarkan_oleh, jenis_pendaftaran, keluhan
         Schema::create('pendaftaran', function (Blueprint $table) {
             $table->id();
-            $table->string('nomor_pendaftaran')->unique(); // e.g. PEND-20240101-0001
+            $table->string('nomor_pendaftaran')->unique();
             $table->foreignId('pasien_id')->constrained('pasien')->onDelete('cascade');
             $table->foreignId('unit_id')->constrained('unit_pemeriksaan')->onDelete('cascade');
             $table->date('tanggal_kunjungan');
             $table->enum('status', [
-                'terdaftar',      // baru daftar
-                'dipanggil',      // antrian dipanggil ke unit
-                'sedang_periksa', // sedang di dokter
-                'selesai_periksa',// selesai dari dokter → ke kasir
-                'selesai'         // seluruh proses selesai
+                'terdaftar',
+                'dipanggil',
+                'sedang_periksa',
+                'selesai_periksa',
+                'selesai'
             ])->default('terdaftar');
-            $table->text('keluhan')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
 
-        // Tabel antrian per unit per hari
+        // Antrian — hapus: dipanggil_oleh
         Schema::create('antrian', function (Blueprint $table) {
             $table->id();
             $table->foreignId('pendaftaran_id')->constrained('pendaftaran')->onDelete('cascade');
             $table->foreignId('unit_id')->constrained('unit_pemeriksaan')->onDelete('cascade');
             $table->date('tanggal');
             $table->integer('nomor_antrian');
-            $table->string('kode_antrian', 20); // e.g. A-001
+            $table->string('kode_antrian', 20);
             $table->enum('status', [
                 'menunggu',
                 'dipanggil',
@@ -45,9 +44,7 @@ return new class extends Migration
             $table->timestamp('waktu_panggil')->nullable();
             $table->timestamps();
 
-            // Satu pendaftaran = satu antrian per unit
             $table->unique(['pendaftaran_id', 'unit_id']);
-            // Nomor antrian unik per unit per hari
             $table->unique(['unit_id', 'tanggal', 'nomor_antrian']);
         });
     }

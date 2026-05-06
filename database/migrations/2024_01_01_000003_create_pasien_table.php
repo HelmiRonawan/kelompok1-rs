@@ -10,13 +10,12 @@ return new class extends Migration
     {
         Schema::create('pasien', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null'); // null jika didaftarkan perawat
-            $table->string('nomor_rm')->unique();        // Nomor Rekam Medis
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->string('nomor_rm')->unique();
             $table->string('nik', 16)->unique();
             $table->string('nama_lengkap');
-            $table->enum('jenis_kelamin', ['L', 'P']);
-            $table->date('tanggal_lahir');
-            $table->string('tempat_lahir')->nullable();
+            $table->enum('jenis_kelamin', ['L', 'P'])->nullable();
+            $table->date('tanggal_lahir')->nullable();
             $table->text('alamat')->nullable();
             $table->string('no_telepon', 20)->nullable();
             $table->timestamps();

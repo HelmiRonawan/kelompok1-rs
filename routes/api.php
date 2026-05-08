@@ -27,7 +27,7 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::get('me',       [AuthController::class, 'me']);
 });
 
-// ── Unit (Public — untuk semua kelompok) ──────────────────────────────────
+// ── Unit (Public) ──────────────────────────────────
 Route::get('units',      [UnitController::class, 'index']);
 Route::get('units/{id}', [UnitController::class, 'show']);
 
@@ -65,7 +65,6 @@ Route::middleware('auth:api')->group(function () {
         Route::middleware('role:superadmin,admin_perawat')->group(function () {
             Route::get('/',           [PendaftaranController::class, 'index']);
             Route::post('/langsung',  [PendaftaranController::class, 'langsung']); // ← pasien datang langsung
-            Route::put('{id}/status', [PendaftaranController::class, 'updateStatus']);
         });
 
         // Pasien: daftar online
@@ -84,13 +83,18 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [AntrianController::class, 'index'])
             ->middleware('role:superadmin,admin_perawat');
 
-        Route::middleware('role:superadmin,admin_perawat')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::post('{id}/panggil',                     [AntrianController::class, 'panggil']);
             Route::post('unit/{unitId}/panggil-berikutnya', [AntrianController::class, 'panggilBerikutnya']);
-            Route::put('{id}/selesai',                      [AntrianController::class, 'selesai']);
+            Route::put('{id}/status',                       [AntrianController::class, 'updateStatus']);
+            Route::get('by-pendaftaran/{pendaftaranId}',    [AntrianController::class, 'byPendaftaran']);
         });
 
         Route::get('saya', [AntrianController::class, 'saya'])
             ->middleware('role:pasien');
     });
+
+    // Public — untuk display monitor & kelompok lain
+    Route::get('antrian/unit/{unitId}',         [AntrianController::class, 'listByUnit']);
+    Route::get('antrian/unit/{unitId}/display', [AntrianController::class, 'display']);
 });

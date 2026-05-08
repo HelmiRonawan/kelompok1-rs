@@ -24,7 +24,11 @@ class PendaftaranController extends Controller
         $pendaftaran = Pendaftaran::with(['pasien', 'unit', 'antrian'])
             ->where('tanggal_kunjungan', $tanggal)
             ->when($request->unit_id, fn($q) => $q->where('unit_id', $request->unit_id))
-            ->when($request->status,  fn($q) => $q->where('status', $request->status))
+            ->when($request->status, function($q) use ($request) {
+                $q->whereHas('antrian', function($query) use ($request) {
+                    $query->where('status', $request->status);
+                });
+            })
             ->orderBy('created_at')
             ->paginate(20);
 
@@ -212,7 +216,6 @@ class PendaftaranController extends Controller
                 'pasien_id'          => $pasien->id,
                 'unit_id'            => $unitId,
                 'tanggal_kunjungan'  => $tanggal,
-                'status'             => 'terdaftar',
             ]);
 
             // Buat antrian
@@ -267,22 +270,6 @@ class PendaftaranController extends Controller
     {
         $pendaftaran = Pendaftaran::with(['pasien', 'unit', 'antrian'])->findOrFail($id);
         return response()->json(['success' => true, 'data' => $pendaftaran]);
-    }
-
-    /**
-     * PUT /api/pendaftaran/{id}/status
-     * Dipakai kelompok lain untuk update status
-     */
-    public function updateStatus(Request $request, int $id): JsonResponse
-    {
-        $validated = $request->validate([
-            'status' => 'required|in:terdaftar,dipanggil,sedang_periksa,selesai_periksa,selesai',
-        ]);
-
-        $pendaftaran = Pendaftaran::findOrFail($id);
-        $pendaftaran->update(['status' => $validated['status']]);
-
-        return response()->json(['success' => true, 'message' => 'Status diupdate.', 'data' => $pendaftaran->fresh()]);
     }
 
     /**

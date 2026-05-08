@@ -15,13 +15,6 @@ return new class extends Migration
             $table->foreignId('pasien_id')->constrained('pasien')->onDelete('cascade');
             $table->foreignId('unit_id')->constrained('unit_pemeriksaan')->onDelete('cascade');
             $table->date('tanggal_kunjungan');
-            $table->enum('status', [
-                'terdaftar',
-                'dipanggil',
-                'sedang_periksa',
-                'selesai_periksa',
-                'selesai'
-            ])->default('terdaftar');
             $table->timestamps();
             $table->softDeletes();
         });
@@ -36,10 +29,11 @@ return new class extends Migration
             $table->string('kode_antrian', 20);
             $table->enum('status', [
                 'menunggu',
-                'dipanggil',
-                'dilayani',
-                'selesai',
-                'tidak_hadir'
+                'pemeriksaan_awal',
+                'sedang_diperiksa',
+                'selesai_pemeriksaan',
+                'lunas',
+                'obat_diserahkan',
             ])->default('menunggu');
             $table->timestamp('waktu_panggil')->nullable();
             $table->timestamps();

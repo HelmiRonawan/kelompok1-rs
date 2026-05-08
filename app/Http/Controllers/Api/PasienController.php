@@ -85,6 +85,8 @@ class PasienController extends Controller
             'tanggal_lahir'=> 'required|date',
             'alamat'       => 'nullable|string',
             'no_telepon'   => 'nullable|string|max:20',
+            'jenis_pasien' => 'required|in:umum,bpjs',
+            'no_bpjs'      => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
         ]);
 
         DB::beginTransaction();
@@ -142,6 +144,8 @@ class PasienController extends Controller
             'nama_lengkap' => 'sometimes|string|max:100',
             'alamat'       => 'sometimes|string',
             'no_telepon'   => 'sometimes|string|max:20',
+            'no_bpjs'      => 'sometimes|nullable|string|max:20',
+            'jenis_pasien' => 'sometimes|in:umum,bpjs',
         ]);
 
         $pasien->update($validated);

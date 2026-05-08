@@ -16,11 +16,8 @@ class Pendaftaran extends Model
         'nomor_pendaftaran',
         'pasien_id',
         'unit_id',
-        'didaftarkan_oleh',
         'tanggal_kunjungan',
-        'jenis_pendaftaran',
         'status',
-        'keluhan',
     ];
 
     protected $casts = [
@@ -36,11 +33,6 @@ class Pendaftaran extends Model
     public function unit()
     {
         return $this->belongsTo(UnitPemeriksaan::class, 'unit_id');
-    }
-
-    public function pendaftar()
-    {
-        return $this->belongsTo(User::class, 'didaftarkan_oleh');
     }
 
     public function antrian()

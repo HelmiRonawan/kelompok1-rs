@@ -49,7 +49,6 @@ class AntrianController extends Controller
         $sedangDilayani = Antrian::with('pendaftaran.pasien')
             ->where('unit_id', $unitId)
             ->where('tanggal', $tanggal)
-            ->where('status', 'dipanggil')
             ->first();
 
         $menunggu = Antrian::with('pendaftaran.pasien')
@@ -107,17 +106,10 @@ class AntrianController extends Controller
             ], 422);
         }
 
-        // Reset antrian sebelumnya yang masih 'dipanggil' → 'tidak_hadir'
-        Antrian::where('unit_id', $antrian->unit_id)
-            ->where('tanggal', $antrian->tanggal)
-            ->where('status', 'dipanggil')
-            ->update(['status' => 'tidak_hadir']);
-
         // Panggil antrian ini
         $antrian->update([
             'status'         => 'dipanggil',
-            'waktu_panggil'  => now(),
-            'dipanggil_oleh' => auth()->id(),
+            'waktu_panggil'  => now()
         ]);
 
         // Update status pendaftaran
@@ -162,17 +154,73 @@ class AntrianController extends Controller
     }
 
     /**
-     * PUT /api/antrian/{id}/selesai
-     * Tandai antrian selesai dilayani (biasanya dipanggil kelompok 2)
-     */
-    public function selesai(int $id): JsonResponse
+    * PUT /api/antrian/{id}/status
+    * Dipakai kelompok 2, 3, 4 untuk update status
+    */
+    public function updateStatus(Request $request, int $id): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'required|in:menunggu,pemeriksaan_awal,sedang_diperiksa,selesai_pemeriksaan,lunas,obat_diserahkan,tidak_hadir',
+        ]);
+
         $antrian = Antrian::findOrFail($id);
-        $antrian->update(['status' => 'selesai']);
+        $antrian->update(['status' => $validated['status']]);
 
         return response()->json([
             'success' => true,
-            'message' => "Antrian {$antrian->kode_antrian} selesai.",
+            'message' => "Status antrian diupdate ke {$validated['status']}.",
+            'data'    => $antrian->fresh()->load('pendaftaran.pasien', 'unit'),
+        ]);
+    }
+
+    /**
+    * GET /api/antrian/by-pendaftaran/{pendaftaranId}
+    * Kelompok lain ambil data antrian by pendaftaran_id
+    */
+    public function byPendaftaran(int $pendaftaranId): JsonResponse
+    {
+        $antrian = Antrian::with(['pendaftaran.pasien', 'unit'])
+            ->where('pendaftaran_id', $pendaftaranId)
+            ->firstOrFail();
+    
+        return response()->json([
+            'success' => true,
+            'data'    => $antrian,
+        ]);
+    }
+
+    /**
+    * GET /api/antrian/unit/{unitId}
+     * Kelompok 2,3,4 tampilkan list antrian di unit mereka hari ini
+    */
+    public function listByUnit(int $unitId): JsonResponse
+    {
+        $tanggal = today()->toDateString();
+    
+        $antrian = Antrian::with(['pendaftaran.pasien'])
+            ->where('unit_id', $unitId)
+            ->where('tanggal', $tanggal)
+            ->orderBy('nomor_antrian')
+            ->get();
+    
+        // Kelompokkan by status supaya mudah ditampilkan frontend
+        return response()->json([
+            'success' => true,
+            'unit'    => UnitPemeriksaan::find($unitId)?->nama_unit,
+            'tanggal' => $tanggal,
+            'data'    => [
+                'menunggu'            => $antrian->where('status', 'menunggu')->values(),
+                'pemeriksaan_awal'    => $antrian->where('status', 'pemeriksaan_awal')->values(),
+                'sedang_diperiksa'    => $antrian->where('status', 'sedang_diperiksa')->values(),
+                'selesai_pemeriksaan' => $antrian->where('status', 'selesai_pemeriksaan')->values(),
+                'lunas'               => $antrian->where('status', 'lunas')->values(),
+                'obat_diserahkan'     => $antrian->where('status', 'obat_diserahkan')->values(),
+            ],
+            'statistik' => [
+                'total'    => $antrian->count(),
+                'menunggu' => $antrian->where('status', 'menunggu')->count(),
+                'selesai'  => $antrian->where('status', 'obat_diserahkan')->count(),
+            ],
         ]);
     }
 

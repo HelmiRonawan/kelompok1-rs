@@ -35,11 +35,6 @@ class Antrian extends Model
         return $this->belongsTo(UnitPemeriksaan::class, 'unit_id');
     }
 
-    public function pemanggil()
-    {
-        return $this->belongsTo(User::class, 'dipanggil_oleh');
-    }
-
     // ── Helper: Nomor Antrian Berikutnya ──────────────────────
     public static function nomorBerikutnya(int $unitId, string $tanggal): int
     {

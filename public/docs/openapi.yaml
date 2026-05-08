@@ -88,7 +88,6 @@ components:
       properties:
         id: { type: integer, example: 1 }
         email: { type: string, example: adminperawat@rs.id }
-        nama_lengkap: { type: string, example: Admin Perawat }
         is_active: { type: boolean, example: true }
         roles:
           type: array
@@ -106,6 +105,8 @@ components:
         tanggal_lahir: { type: string, format: date, example: "1990-05-20" }
         alamat: { type: string, nullable: true }
         no_telepon: { type: string, nullable: true }
+        jenis_pasien:   { type: string, enum: [umum, bpjs], example: umum }
+        no_bpjs:        { type: string, nullable: true }
 
     TiketAntrian:
       type: object
@@ -124,7 +125,7 @@ components:
         nomor_antrian: { type: integer, example: 1 }
         status:
           type: string
-          enum: [menunggu, dipanggil, dilayani, selesai, tidak_hadir]
+          enum: [menunggu, pemeriksaan_awal, sedang_diperiksa, selesai_pemeriksaan, lunas, obat_diserahkan]
         tanggal: { type: string, format: date }
         waktu_panggil: { type: string, format: date-time, nullable: true }
 
@@ -157,13 +158,6 @@ paths:
                   type: string
                   format: email
                   example: budi@gmail.com
-                password:
-                  type: string
-                  minLength: 8
-                  example: password123
-                password_confirmation:
-                  type: string
-                  example: password123
       responses:
         "201":
           description: Registrasi berhasil, OTP dikirim ke Gmail
@@ -207,6 +201,13 @@ paths:
                   type: string
                   format: email
                   example: budi@gmail.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: password123
+                password_confirmation:
+                  type: string
+                  example: password123
                 otp:
                   type: string
                   minLength: 6
@@ -330,7 +331,6 @@ paths:
                         properties:
                           id: { type: integer }
                           email: { type: string }
-                          nama_lengkap: { type: string }
                           roles: { type: array, items: { type: string } }
                           has_data_pasien:
                             {
@@ -415,7 +415,6 @@ paths:
                     properties:
                       id: { type: integer }
                       email: { type: string }
-                      nama_lengkap: { type: string }
                       email_verified: { type: boolean }
                       roles: { type: array, items: { type: string } }
                       has_data_pasien: { type: boolean }
@@ -617,11 +616,10 @@ paths:
           application/json:
             schema:
               type: object
-              required: [email, password, nama_lengkap, roles]
+              required: [email, password, roles]
               properties:
                 email: { type: string, format: email, example: dokter02@rs.id }
                 password: { type: string, minLength: 8, example: dokter123 }
-                nama_lengkap: { type: string, example: Dr. Siti Rahayu }
                 roles:
                   type: array
                   items: { type: string }
@@ -632,7 +630,6 @@ paths:
                   {
                     email: dokter02@rs.id,
                     password: dokter123,
-                    nama_lengkap: "Dr. Siti Rahayu",
                     roles: [dokter],
                   }
               Buat Kasir:
@@ -640,7 +637,6 @@ paths:
                   {
                     email: kasir02@rs.id,
                     password: kasir123,
-                    nama_lengkap: "Kasir Dua",
                     roles: [kasir],
                   }
               User 2 Role:
@@ -648,7 +644,6 @@ paths:
                   {
                     email: staff@rs.id,
                     password: staff123,
-                    nama_lengkap: "Staff RS",
                     roles: [perawat, admin_perawat],
                   }
       responses:
@@ -691,7 +686,6 @@ paths:
               type: object
               properties:
                 email: { type: string, format: email }
-                nama_lengkap: { type: string }
                 password: { type: string, minLength: 8 }
                 is_active: { type: boolean }
                 roles: { type: array, items: { type: string } }
@@ -838,7 +832,12 @@ paths:
           schema:
             type: string
             enum:
-              [terdaftar, dipanggil, sedang_periksa, selesai_periksa, selesai]
+              [ 'menunggu',
+                'pemeriksaan_awal',
+                'sedang_diperiksa',
+                'selesai_pemeriksaan',
+                'lunas',
+                'obat_diserahkan',]
       responses:
         "200":
           description: List pendaftaran
@@ -1045,57 +1044,6 @@ paths:
       responses:
         "200":
           description: Detail pendaftaran + antrian + pasien
-
-  /pendaftaran/{id}/status:
-    put:
-      tags: [Pendaftaran]
-      summary: Update status pendaftaran
-      description: |
-        **Dipakai kelompok lain** untuk update status saat pasien pindah tahap.
-
-        ### Alur status:
-        ```
-        terdaftar → dipanggil → sedang_periksa → selesai_periksa → selesai
-        ```
-
-        | Status | Diupdate oleh |
-        |---|---|
-        | `dipanggil` | Kelompok 1 (admin perawat) |
-        | `sedang_periksa` | Kelompok 2 (perawat/dokter) |
-        | `selesai_periksa` | Kelompok 2 (setelah dokter selesai) |
-        | `selesai` | Kelompok 3 atau 4 |
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [status]
-              properties:
-                status:
-                  type: string
-                  enum:
-                    [
-                      terdaftar,
-                      dipanggil,
-                      sedang_periksa,
-                      selesai_periksa,
-                      selesai,
-                    ]
-                  example: sedang_periksa
-      responses:
-        "200":
-          description: Status diupdate
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/SuccessResponse" }
 
   /pendaftaran/pasien/{pasienId}/riwayat:
     get:

@@ -18,6 +18,8 @@ return new class extends Migration
             $table->date('tanggal_lahir')->nullable();
             $table->text('alamat')->nullable();
             $table->string('no_telepon', 20)->nullable();
+            $table->enum('jenis_pasien', ['umum', 'bpjs'])->default('umum');
+            $table->string('no_bpjs', 20)->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

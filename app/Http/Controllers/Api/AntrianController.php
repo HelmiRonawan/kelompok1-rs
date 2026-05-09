@@ -43,12 +43,12 @@ class AntrianController extends Controller
     public function display(int $unitId): JsonResponse
     {
         $tanggal = today()->toDateString();
+        $unit    = UnitPemeriksaan::findOrFail($unitId);
 
-        $unit = UnitPemeriksaan::findOrFail($unitId);
-
-        $sedangDilayani = Antrian::with('pendaftaran.pasien')
+        $sedangDipanggil = Antrian::with('pendaftaran.pasien')
             ->where('unit_id', $unitId)
             ->where('tanggal', $tanggal)
+            ->where('status', 'dipanggil')
             ->first();
 
         $menunggu = Antrian::with('pendaftaran.pasien')
@@ -63,29 +63,34 @@ class AntrianController extends Controller
             ->where('tanggal', $tanggal)
             ->count();
 
+        // ← Fix: sesuaikan status yang dianggap selesai
         $sudahSelesai = Antrian::where('unit_id', $unitId)
             ->where('tanggal', $tanggal)
-            ->whereIn('status', ['dilayani', 'selesai'])
+            ->whereIn('status', [
+                'selesai_pemeriksaan',
+                'lunas',
+                'obat_diserahkan',  // ← status final
+            ])
             ->count();
 
         return response()->json([
-            'success'   => true,
-            'unit'      => $unit->nama_unit,
-            'tanggal'   => $tanggal,
-            'dipanggil' => $sedangDilayani ? [
-                'kode'         => $sedangDilayani->kode_antrian,
-                'nomor'        => $sedangDilayani->nomor_antrian,
-                'nama_pasien'  => $sedangDilayani->pendaftaran->pasien->nama_lengkap,
-                'waktu_panggil'=> $sedangDilayani->waktu_panggil,
+            'success' => true,
+            'unit'    => $unit->nama_unit,
+            'tanggal' => $tanggal,
+            'dipanggil' => $sedangDipanggil ? [
+                'kode'         => $sedangDipanggil->kode_antrian,
+                'nomor'        => $sedangDipanggil->nomor_antrian,
+                'nama_pasien'  => $sedangDipanggil->pendaftaran->pasien->nama_lengkap,
+                'waktu_panggil'=> $sedangDipanggil->waktu_panggil,
             ] : null,
             'antrian_menunggu' => $menunggu->map(fn($a) => [
                 'kode'  => $a->kode_antrian,
                 'nomor' => $a->nomor_antrian,
             ]),
             'statistik' => [
-                'total'     => $totalHariIni,
-                'selesai'   => $sudahSelesai,
-                'menunggu'  => $totalHariIni - $sudahSelesai,
+                'total'    => $totalHariIni,
+                'selesai'  => $sudahSelesai,
+                'menunggu' => $totalHariIni - $sudahSelesai,
             ],
         ]);
     }
@@ -160,11 +165,18 @@ class AntrianController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|in:menunggu,pemeriksaan_awal,sedang_diperiksa,selesai_pemeriksaan,lunas,obat_diserahkan,tidak_hadir',
+            'status' => 'required|in:menunggu,dipanggil,pemeriksaan_awal,sedang_diperiksa,selesai_pemeriksaan,lunas,obat_diserahkan,tidak_hadir',
         ]);
 
-        $antrian = Antrian::findOrFail($id);
-        $antrian->update(['status' => $validated['status']]);
+        $antrian = Antrian::with(['pendaftaran.pasien', 'unit'])->findOrFail($id);
+
+        // Catat waktu panggil jika status dipanggil
+        $data = ['status' => $validated['status']];
+        if ($validated['status'] === 'dipanggil') {
+            $data['waktu_panggil'] = now();
+        }
+
+        $antrian->update($data);
 
         return response()->json([
             'success' => true,
@@ -203,7 +215,7 @@ class AntrianController extends Controller
             ->orderBy('nomor_antrian')
             ->get();
     
-        // Kelompokkan by status supaya mudah ditampilkan frontend
+        // Kelompokkan by status
         return response()->json([
             'success' => true,
             'unit'    => UnitPemeriksaan::find($unitId)?->nama_unit,

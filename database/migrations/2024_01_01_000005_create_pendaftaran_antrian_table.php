@@ -29,11 +29,13 @@ return new class extends Migration
             $table->string('kode_antrian', 20);
             $table->enum('status', [
                 'menunggu',
+                'dipanggil',
                 'pemeriksaan_awal',
                 'sedang_diperiksa',
                 'selesai_pemeriksaan',
                 'lunas',
                 'obat_diserahkan',
+                'tidak_hadir',
             ])->default('menunggu');
             $table->timestamp('waktu_panggil')->nullable();
             $table->timestamps();

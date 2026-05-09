@@ -88,6 +88,7 @@ Route::middleware('auth:api')->group(function () {
             Route::post('unit/{unitId}/panggil-berikutnya', [AntrianController::class, 'panggilBerikutnya']);
             Route::put('{id}/status',                       [AntrianController::class, 'updateStatus']);
             Route::get('by-pendaftaran/{pendaftaranId}',    [AntrianController::class, 'byPendaftaran']);
+            Route::get('unit/{unitId}',                     [AntrianController::class, 'listByUnit']);
         });
 
         Route::get('saya', [AntrianController::class, 'saya'])

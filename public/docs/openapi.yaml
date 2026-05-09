@@ -22,7 +22,6 @@ info:
     | `POST /api/auth/login` | Login, dapat token |
     | `POST /api/auth/verify-token` | Verifikasi token dari request masuk |
     | `GET /api/units` | Ambil data unit pemeriksaan |
-    | `PUT /api/pendaftaran/{id}/status` | Update status saat pasien pindah tahap |
 
   version: 5.0.0
   contact:
@@ -1164,21 +1163,6 @@ paths:
           description: Antrian berikutnya dipanggil
         "404":
           description: Tidak ada antrian yang menunggu
-
-  /antrian/{id}/selesai:
-    put:
-      tags: [Antrian]
-      summary: Tandai antrian selesai
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
-      responses:
-        "200":
-          description: Antrian selesai
 
   /antrian/saya:
     get:

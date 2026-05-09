@@ -17,7 +17,6 @@ class Pendaftaran extends Model
         'pasien_id',
         'unit_id',
         'tanggal_kunjungan',
-        'status',
     ];
 
     protected $casts = [

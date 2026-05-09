@@ -16,7 +16,6 @@ class Antrian extends Model
         'kode_antrian',
         'status',
         'waktu_panggil',
-        'dipanggil_oleh',
     ];
 
     protected $casts = [

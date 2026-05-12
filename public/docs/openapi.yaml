@@ -107,7 +107,50 @@ components:
         jenis_pasien:   { type: string, enum: [umum, bpjs], example: umum }
         no_bpjs:        { type: string, nullable: true }
 
+    # ─── Antrian ─────────────────────────────────────────────────────────────
+
+    AntrianStatus:
+      # Definisi enum terpusat — dipakai oleh Antrian & updateStatus request body
+      type: string
+      enum:
+        - menunggu
+        - dipanggil            # ← ditambah: ada di updateStatus & display
+        - pemeriksaan_awal
+        - sedang_diperiksa
+        - selesai_pemeriksaan
+        - lunas
+        - obat_diserahkan
+        - tidak_hadir          # ← ditambah: ada di updateStatus
+      example: menunggu
+
+    Antrian:
+      # Model lengkap dengan relasi — dipakai oleh updateStatus, byPendaftaran, listByUnit
+      type: object
+      properties:
+        id: { type: integer, example: 42 }
+        pendaftaran_id: { type: integer, example: 10 }   # ← ditambah
+        unit_id: { type: integer, example: 3 }           # ← ditambah
+        kode_antrian: { type: string, example: A-001 }
+        nomor_antrian: { type: integer, example: 1 }
+        tanggal: { type: string, format: date, example: "2026-05-12" }
+        status:
+          $ref: '#/components/schemas/AntrianStatus'
+        waktu_panggil: { type: string, format: date-time, nullable: true }
+        pendaftaran:                                      # ← ditambah: eager-load
+          type: object
+          properties:
+            id: { type: integer, example: 10 }
+            nomor_pendaftaran: { type: string, example: PEND-20260512-0001 }
+            pasien:
+              $ref: '#/components/schemas/Pasien'
+        unit:                                            # ← ditambah: eager-load
+          type: object
+          properties:
+            id: { type: integer, example: 3 }
+            nama_unit: { type: string, example: Poli Umum }
+
     TiketAntrian:
+      # Tiket ringkas yang dikembalikan saat pendaftaran
       type: object
       properties:
         nomor_antrian: { type: integer, example: 5 }
@@ -116,17 +159,55 @@ components:
         tanggal: { type: string, format: date }
         nomor_pendaftaran: { type: string, example: PEND-20240115-0005 }
 
-    Antrian:
+    # ─── Schema khusus endpoint antrian baru ─────────────────────────────────
+
+    AntrianDisplayDipanggil:
+      # Dipakai di GET /antrian/unit/{unitId}/display → field "dipanggil"
+      type: object
+      nullable: true
+      properties:
+        kode: { type: string, example: A-001 }
+        nomor: { type: integer, example: 1 }
+        nama_pasien: { type: string, example: Budi Santoso }
+        waktu_panggil: { type: string, format: date-time, example: "2026-05-12T08:30:00" }
+
+    AntrianMenungguRingkas:
+      # Dipakai di GET /antrian/unit/{unitId}/display → array "antrian_menunggu"
       type: object
       properties:
-        id: { type: integer }
-        kode_antrian: { type: string, example: A-001 }
-        nomor_antrian: { type: integer, example: 1 }
-        status:
-          type: string
-          enum: [menunggu, pemeriksaan_awal, sedang_diperiksa, selesai_pemeriksaan, lunas, obat_diserahkan]
-        tanggal: { type: string, format: date }
-        waktu_panggil: { type: string, format: date-time, nullable: true }
+        kode: { type: string, example: A-002 }
+        nomor: { type: integer, example: 2 }
+
+    StatistikAntrian:
+      # Dipakai di GET /display dan GET /unit/{unitId}
+      type: object
+      properties:
+        total: { type: integer, example: 20 }
+        selesai: { type: integer, example: 7 }
+        menunggu: { type: integer, example: 13 }
+
+    AntrianByStatus:
+      # Dipakai di GET /antrian/unit/{unitId} → field "data"
+      type: object
+      properties:
+        menunggu:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
+        pemeriksaan_awal:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
+        sedang_diperiksa:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
+        selesai_pemeriksaan:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
+        lunas:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
+        obat_diserahkan:
+          type: array
+          items: { $ref: '#/components/schemas/Antrian' }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PATHS
@@ -1083,51 +1164,87 @@ paths:
   /antrian/unit/{unitId}/display:
     get:
       tags: [Antrian]
-      summary: Display monitor antrian (PUBLIC — tidak perlu token)
-      description: |
-        Tidak perlu token. Untuk **layar monitor di ruang tunggu**.
-
-        Menampilkan:
-        - Nomor antrian yang sedang dipanggil
-        - 5 antrian berikutnya yang menunggu
-        - Statistik hari ini
+      summary: Display monitor antrian
+      description: >
+        Khusus untuk display monitor antrian di ruang tunggu unit.
+        Menampilkan pasien yang sedang dipanggil, 5 antrian menunggu berikutnya,
+        dan statistik hari ini.
+      operationId: displayAntrian
       parameters:
         - name: unitId
           in: path
           required: true
-          schema: { type: integer }
-          description: "1=Mata, 2=Gigi, dst"
+          description: ID unit pemeriksaan
+          schema:
+            type: integer
+            example: 3
       responses:
-        "200":
-          description: Data display monitor
+        '200':
+          description: Data display antrian berhasil diambil
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  unit: { type: string, example: Mata }
-                  tanggal: { type: string, format: date }
+                  success:
+                    type: boolean
+                    example: true
+                  unit:
+                    type: string
+                    example: Poli Umum
+                  tanggal:
+                    type: string
+                    format: date
+                    example: '2026-05-12'
                   dipanggil:
-                    type: object
                     nullable: true
+                    description: Pasien yang sedang dipanggil, null jika tidak ada
+                    type: object
                     properties:
-                      kode: { type: string, example: A-005 }
-                      nomor: { type: integer, example: 5 }
-                      nama_pasien: { type: string, example: Budi Santoso }
-                      waktu_panggil: { type: string, format: date-time }
+                      kode:
+                        type: string
+                        example: A-001
+                      nomor:
+                        type: integer
+                        example: 1
+                      nama_pasien:
+                        type: string
+                        example: Budi Santoso
+                      waktu_panggil:
+                        type: string
+                        format: date-time
+                        example: '2026-05-12T08:30:00'
                   antrian_menunggu:
                     type: array
+                    description: Maks 5 antrian berikutnya yang menunggu
                     items:
                       type: object
                       properties:
-                        kode: { type: string }
-                        nomor: { type: integer }
+                        kode:
+                          type: string
+                          example: A-002
+                        nomor:
+                          type: integer
+                          example: 2
                   statistik:
                     type: object
                     properties:
-                      total: { type: integer }
-                      selesai: { type: integer }
-                      menunggu: { type: integer }
+                      total:
+                        type: integer
+                        example: 20
+                      selesai:
+                        type: integer
+                        description: Jumlah dengan status selesai_pemeriksaan, lunas, atau obat_diserahkan
+                        example: 7
+                      menunggu:
+                        type: integer
+                        example: 13
+        '404':
+          description: Unit tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /antrian/{id}/panggil:
     post:
@@ -1163,6 +1280,234 @@ paths:
           description: Antrian berikutnya dipanggil
         "404":
           description: Tidak ada antrian yang menunggu
+
+  /antrian/{id}/status:
+    put:
+      tags: [Antrian]
+      summary: Update status antrian
+      description: >
+        Dipakai oleh K1, K2, K3, K4 untuk mengupdate status antrian.
+        Endpoint ini menangani transisi status alur pemeriksaan
+        (menunggu → pemeriksaan_awal → sedang_diperiksa → selesai_pemeriksaan → lunas → obat_diserahkan).
+      operationId: updateStatusAntrian
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID antrian
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - menunggu
+                    - dipanggil
+                    - pemeriksaan_awal
+                    - sedang_diperiksa
+                    - selesai_pemeriksaan
+                    - lunas
+                    - obat_diserahkan
+                    - tidak_hadir
+                  example: dipanggil
+            examples:
+              dipanggil:
+                summary: Dipanggil
+                value:
+                  status: dipanggil
+              pemeriksaan_awal:
+                summary:  Pemeriksaan awal
+                value:
+                  status: pemeriksaan_awal
+              sedang_diperiksa:
+                summary: Sedang diperiksa
+                value:
+                  status: sedang_diperiksa
+              selesai_pemeriksaan:
+                summary: Selesai pemeriksaan
+                value:
+                  status: selesai_pemeriksaan
+              lunas:
+                summary: Lunas
+                value:
+                  status: lunas
+              obat_diserahkan:
+                summary: Obat diserahkan
+                value:
+                  status: obat_diserahkan
+              tidak_hadir:
+                summary: Pasien tidak hadir
+                value:
+                  status: tidak_hadir
+      responses:
+        '200':
+          description: Status berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Status antrian diupdate ke pemeriksaan_awal." }
+                  data:
+                    $ref: '#/components/schemas/Antrian'
+              examples:
+                pemeriksaan_awal:
+                  summary: Transisi ke pemeriksaan awal
+                  value:
+                    success: true
+                    message: "Status antrian diupdate ke pemeriksaan_awal."
+                    data:
+                      status: pemeriksaan_awal
+                      waktu_panggil: null
+                tidak_hadir:
+                  summary: Pasien tidak hadir
+                  value:
+                    success: true
+                    message: "Status antrian diupdate ke tidak_hadir."
+                    data:
+                      status: tidak_hadir
+                      waktu_panggil: null
+        '404':
+          description: Antrian tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validasi gagal — nilai status tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /antrian/by-pendaftaran/{pendaftaranId}:
+    get:
+      tags: [Antrian]
+      summary: Ambil antrian berdasarkan ID pendaftaran
+      description: >
+        Digunakan kelompok lain untuk mengambil data antrian berdasarkan
+        pendaftaran_id. Mengembalikan satu antrian beserta relasi pasien dan unit.
+      operationId: antrianByPendaftaran
+      parameters:
+        - name: pendaftaranId
+          in: path
+          required: true
+          description: ID pendaftaran pasien
+          schema:
+            type: integer
+            example: 10
+      responses:
+        '200':
+          description: Data antrian berhasil ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Antrian'
+        '404':
+          description: Antrian dengan pendaftaran_id tersebut tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /antrian/unit/{unitId}:
+    get:
+      tags: [Antrian]
+      summary: List antrian per unit hari ini
+      description: >
+        Dipakai oleh Kelompok 2, 3, 4 untuk menampilkan daftar antrian di unit
+        mereka hari ini. Antrian dikelompokkan berdasarkan status dan diurutkan
+        berdasarkan nomor_antrian.
+      operationId: listAntrianByUnit
+      parameters:
+        - name: unitId
+          in: path
+          required: true
+          description: ID unit pemeriksaan
+          schema:
+            type: integer
+            example: 3
+      responses:
+        '200':
+          description: Daftar antrian berhasil diambil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  unit:
+                    type: string
+                    nullable: true
+                    example: Poli Umum
+                  tanggal:
+                    type: string
+                    format: date
+                    example: '2026-05-12'
+                  data:
+                    type: object
+                    description: Antrian dikelompokkan per status
+                    properties:
+                      menunggu:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                      pemeriksaan_awal:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                      sedang_diperiksa:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                      selesai_pemeriksaan:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                      lunas:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                      obat_diserahkan:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Antrian'
+                  statistik:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        example: 20
+                      menunggu:
+                        type: integer
+                        example: 10
+                      selesai:
+                        type: integer
+                        description: Jumlah dengan status obat_diserahkan
+                        example: 5
+        '404':
+          description: Unit tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /antrian/saya:
     get:

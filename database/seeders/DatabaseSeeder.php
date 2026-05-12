@@ -44,17 +44,17 @@ class DatabaseSeeder extends Seeder
         // ── User Default ───────────────────────────────────────────────────
         $users = [
             // 1
-            ['email' => 'freejpgtopng1@gmail.com',      'password' => 'admin12345',  'nama' => 'Super Administrator',  'roles' => ['superadmin']],
-            ['email' => 'adminperawat@rs.id',     'password' => 'perawat123',  'nama' => 'Admin Perawat',        'roles' => ['admin_perawat']],
+            ['email' => 'freejpgtopng1@gmail.com',      'password' => 'admin12345',  'roles' => ['superadmin']],
+            ['email' => 'adminperawat@rs.id',     'password' => 'perawat123',  'roles' => ['admin_perawat']],
             // 2
-            ['email' => 'perawat01@rs.id',        'password' => 'perawat123',  'nama' => 'Perawat Satu',         'roles' => ['perawat']],
-            ['email' => 'dokter01@rs.id',         'password' => 'dokter123',   'nama' => 'Dr. Budi Santoso',     'roles' => ['dokter']],
+            ['email' => 'perawat01@rs.id',        'password' => 'perawat123',  'roles' => ['perawat']],
+            ['email' => 'dokter01@rs.id',         'password' => 'dokter123',   'roles' => ['dokter']],
             // 3
-            ['email' => 'kasir01@rs.id',          'password' => 'kasir123',    'nama' => 'Kasir Satu',           'roles' => ['kasir']],
-            ['email' => 'adminkasir@rs.id',       'password' => 'kasir123',    'nama' => 'Admin Kasir',          'roles' => ['admin_kasir']],
+            ['email' => 'kasir01@rs.id',          'password' => 'kasir123',    'roles' => ['kasir']],
+            ['email' => 'adminkasir@rs.id',       'password' => 'kasir123',    'roles' => ['admin_kasir']],
             // 4
-            ['email' => 'apoteker01@rs.id',       'password' => 'apotik123',   'nama' => 'Apoteker Satu',        'roles' => ['apoteker']],
-            ['email' => 'adminapotik@rs.id',      'password' => 'apotik123',   'nama' => 'Admin Apotik',         'roles' => ['admin_apotik']],
+            ['email' => 'apoteker01@rs.id',       'password' => 'apotik123',   'roles' => ['apoteker']],
+            ['email' => 'adminapotik@rs.id',      'password' => 'apotik123',   'roles' => ['admin_apotik']],
         ];
 
         foreach ($users as $data) {

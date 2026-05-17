@@ -38,7 +38,6 @@ class AntrianController extends Controller
     /**
      * GET /api/antrian/unit/{unitId}/display
      * Khusus untuk display monitor antrian di ruang tunggu unit
-     * Format ringkas untuk ditampilkan di layar
      */
     public function display(int $unitId): JsonResponse
     {
@@ -63,7 +62,7 @@ class AntrianController extends Controller
             ->where('tanggal', $tanggal)
             ->count();
 
-        // ← Fix: sesuaikan status yang dianggap selesai
+        // sesuaikan status yang dianggap selesai
         $sudahSelesai = Antrian::where('unit_id', $unitId)
             ->where('tanggal', $tanggal)
             ->whereIn('status', [
@@ -97,7 +96,7 @@ class AntrianController extends Controller
 
     /**
      * POST /api/antrian/{id}/panggil
-     * Perawat: panggil nomor antrian berikutnya
+     * Adm/Perawat: panggil nomor antrian berikutnya
      * CATATAN: Pemanggilan dilakukan di UNIT masing-masing (bukan di pendaftaran)
      */
     public function panggil(int $id): JsonResponse
@@ -135,7 +134,7 @@ class AntrianController extends Controller
 
     /**
      * POST /api/antrian/unit/{unitId}/panggil-berikutnya
-     * Perawat: panggil otomatis nomor antrian terkecil yang masih menunggu
+     * Adm/Perawat: panggil otomatis nomor antrian terkecil yang masih menunggu
      */
     public function panggilBerikutnya(int $unitId): JsonResponse
     {
@@ -160,7 +159,7 @@ class AntrianController extends Controller
 
     /**
     * PUT /api/antrian/{id}/status
-    * Dipakai kelompok 2, 3, 4 untuk update status
+    * Dipakai untuk update status
     */
     public function updateStatus(Request $request, int $id): JsonResponse
     {
@@ -186,24 +185,8 @@ class AntrianController extends Controller
     }
 
     /**
-    * GET /api/antrian/by-pendaftaran/{pendaftaranId}
-    * Kelompok lain ambil data antrian by pendaftaran_id
-    */
-    public function byPendaftaran(int $pendaftaranId): JsonResponse
-    {
-        $antrian = Antrian::with(['pendaftaran.pasien', 'unit'])
-            ->where('pendaftaran_id', $pendaftaranId)
-            ->firstOrFail();
-    
-        return response()->json([
-            'success' => true,
-            'data'    => $antrian,
-        ]);
-    }
-
-    /**
     * GET /api/antrian/unit/{unitId}
-     * Kelompok 2,3,4 tampilkan list antrian di unit mereka hari ini
+     * tampilkan list antrian di unit mereka hari ini
     */
     public function listByUnit(int $unitId): JsonResponse
     {

@@ -959,7 +959,7 @@ paths:
                 unit_id:
                   type: integer
                   example: 1
-                  description: "1=Mata, 2=Gigi, 3=Penyakit Dalam, dst"
+                  description: "1=A=Mata, 2=B=Gigi, 3=C=Penyakit Dalam, dst"
                 jenis_kelamin:
                   type: string
                   enum: [L, P]
@@ -1388,42 +1388,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-
-  /antrian/by-pendaftaran/{pendaftaranId}:
-    get:
-      tags: [Antrian]
-      summary: Ambil antrian berdasarkan ID pendaftaran
-      description: >
-        Digunakan kelompok lain untuk mengambil data antrian berdasarkan
-        pendaftaran_id. Mengembalikan satu antrian beserta relasi pasien dan unit.
-      operationId: antrianByPendaftaran
-      parameters:
-        - name: pendaftaranId
-          in: path
-          required: true
-          description: ID pendaftaran pasien
-          schema:
-            type: integer
-            example: 10
-      responses:
-        '200':
-          description: Data antrian berhasil ditemukan
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  data:
-                    $ref: '#/components/schemas/Antrian'
-        '404':
-          description: Antrian dengan pendaftaran_id tersebut tidak ditemukan
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
 
   /antrian/unit/{unitId}:
     get:

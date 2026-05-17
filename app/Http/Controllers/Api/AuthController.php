@@ -206,7 +206,7 @@ class AuthController extends Controller
                     'id'          => $user->id,
                     'email'       => $user->email,
                     'roles'       => $user->roles->pluck('nama_role'),
-                    'has_data_pasien' => $user->pasien()->exists(), // hint ke frontend
+                    'has_data_pasien' => $user->pasien()->exists(),
                 ],
             ],
         ]);

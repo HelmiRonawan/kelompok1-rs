@@ -89,24 +89,10 @@ class PasienController extends Controller
             'no_bpjs'      => 'required_if:jenis_pasien,bpjs|nullable|string|max:20',
         ]);
 
-        DB::beginTransaction();
         try {
-            // Buat akun user otomatis (username = NIK, password = tgl lahir YYYYMMDD)  (REVISI)
-            $defaultPassword = str_replace('-', '', $validated['tanggal_lahir']);
-            $user = User::create([
-                'username'    => $validated['nik'],
-                'password'    => Hash::make($defaultPassword),
-                // 'nama_lengkap'=> $validated['nama_lengkap'],
-            ]);
-
-            $pasienRole = Role::where('nama_role', 'pasien')->first();
-            if ($pasienRole) {
-                $user->roles()->attach($pasienRole->id);
-            }
-
             // Buat data pasien
             $pasien = Pasien::create(array_merge($validated, [
-                'user_id'    => $user->id,
+                'user_id'    => null,
                 'nomor_rm'   => Pasien::generateNomorRM(),
             ]));
 
@@ -115,19 +101,14 @@ class PasienController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Pasien berhasil didaftarkan.',
-                'data'    => $pasien->load('user'),
-                'info'    => [
-                    'username' => $user->username,
-                    'password_default' => $defaultPassword,
-                    'note'    => 'Password default = tanggal lahir (YYYYMMDD). Minta pasien ganti setelah login.',
-                ],
+                'data'    => $pasien,
             ], 201);
+
         } catch (\Throwable $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mendaftarkan pasien.',
-                'error'   => $e->getMessage(),
+                'error'   => app()->isLocal() ? $e->getMessage() : null,
             ], 500);
         }
     }

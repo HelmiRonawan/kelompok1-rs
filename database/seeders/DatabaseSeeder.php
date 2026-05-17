@@ -45,23 +45,23 @@ class DatabaseSeeder extends Seeder
         $users = [
             // 1
             ['email' => 'freejpgtopng1@gmail.com',      'password' => 'admin12345',  'roles' => ['superadmin']],
-            ['email' => 'adminperawat@rs.id',     'password' => 'perawat123',  'roles' => ['admin_perawat']],
+            ['email' => 'derinayu@viamedika.id',     'password' => 'adperawat123',  'roles' => ['admin_perawat']],
             // 2
-            ['email' => 'perawat01@rs.id',        'password' => 'perawat123',  'roles' => ['perawat']],
-            ['email' => 'dokter01@rs.id',         'password' => 'dokter123',   'roles' => ['dokter']],
+            ['email' => 'mijie@viamedika.id',        'password' => 'perawat123',  'roles' => ['perawat']],
+            ['email' => 'janny@viamedika.id',         'password' => 'dokter123',   'roles' => ['dokter']],
             // 3
-            ['email' => 'kasir01@rs.id',          'password' => 'kasir123',    'roles' => ['kasir']],
-            ['email' => 'adminkasir@rs.id',       'password' => 'kasir123',    'roles' => ['admin_kasir']],
+            ['email' => 'kasir01@viamedika.id',          'password' => 'kasir123',    'roles' => ['kasir']],
+            ['email' => 'adminkasir@viamedika.id',       'password' => 'adkasir123',    'roles' => ['admin_kasir']],
             // 4
-            ['email' => 'apoteker01@rs.id',       'password' => 'apotik123',   'roles' => ['apoteker']],
-            ['email' => 'adminapotik@rs.id',      'password' => 'apotik123',   'roles' => ['admin_apotik']],
+            ['email' => 'apoteker01@viamedika.id',       'password' => 'apotik123',   'roles' => ['apoteker']],
+            ['email' => 'adminapotik@viamedika.id',      'password' => 'adapotik123',   'roles' => ['admin_apotik']],
         ];
 
         foreach ($users as $data) {
             $user = User::firstOrCreate(
                 ['email' => $data['email']],
                 [
-                    'password'          => Hash::make($data['password']),
+                    'password'          => Hash::make($data['password']), 
                     'is_active'         => true,
                     'email_verified_at' => now(),
                 ]
@@ -74,13 +74,13 @@ class DatabaseSeeder extends Seeder
         echo "─────────────────────────────────────────────────────\n";
         echo "LOGIN PAKAI EMAIL:\n";
         echo "  1. freejpgtopng1@gmail.com      → admin12345  \n";
-        echo "  2. adminperawat@rs.id    → perawat123  \n";
-        echo "  3. perawat01@rs.id       → perawat123  \n";
-        echo "  4. dokter01@rs.id        → dokter123   \n";
-        echo "  5. kasir01@rs.id         → kasir123    \n";
-        echo "  6. adminkasir@rs.id      → kasir123    \n";
-        echo "  7. apoteker01@rs.id      → apotik123   \n";
-        echo "  8. adminapotik@rs.id     → apotik123   \n";
+        echo "  2. derinayu@viamedika.id    → adperawat123  \n";
+        echo "  3. mijie@viamedika.id       → perawat123  \n";
+        echo "  4. janny@viamedika.id        → dokter123   \n";
+        echo "  5. kasir01@viamedika.id         → kasir123    \n";
+        echo "  6. adminkasir@viamedika.id      → adkasir123    \n";
+        echo "  7. apoteker01@viamedika.id      → apotik123   \n";
+        echo "  8. adminapotik@viamedika.id     → adapotik123   \n";
         echo "─────────────────────────────────────────────────────\n";
     }
 }

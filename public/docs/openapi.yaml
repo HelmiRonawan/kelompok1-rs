@@ -849,6 +849,84 @@ paths:
                 Pasien Baru:
                   value: { success: true, terdaftar: false, data: null }
 
+  /pasien/profil:
+    get:
+      tags: [Pasien]
+      summary: Ambil data diri sendiri (khusus pasien)
+      description: |
+        Dipakai pasien untuk ambil data diri sendiri setelah login.
+        Tidak perlu tahu `id` or `nik` — otomatis ambil by token.
+  
+        ### Dipakai Frontend untuk:
+        - Cek apakah pasien sudah punya data (terdaftar atau belum)
+        - Pre-fill form pendaftaran online jika sudah terdaftar
+  
+        ### Flow:
+        Login → GET /api/pasien/profil
+                  ↓
+        terdaftar: true  → pre-fill form, tinggal pilih unit
+        terdaftar: false → tampilkan form isi data lengkap
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Data pasien ditemukan atau belum ada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  terdaftar:
+                    type: boolean
+                    description: "false = belum ada data pasien, tampilkan form isi data"
+                  message:
+                    type: string
+                    nullable: true
+                  data:
+                    nullable: true
+                    allOf:
+                      - $ref: '#/components/schemas/Pasien'
+              examples:
+                PasienLama:
+                  summary: Contoh Pasien Lama
+                  value:
+                    success: true
+                    terdaftar: true
+                    data:
+                      id: 1
+                      user_id: 5
+                      nomor_rm: "RM-000001"
+                      nik: "3201234567890001"
+                      nama_lengkap: "Budi Santoso"
+                      jenis_kelamin: "L"
+                      tanggal_lahir: "1990-05-20"
+                      alamat: "Jl. Merdeka No. 1"
+                      no_telepon: "08123456789"
+                      jenis_pasien: "umum"
+                      no_bpjs: null
+                PasienBaru:
+                  summary: Contoh Pasien Baru
+                  value:
+                    success: true
+                    terdaftar: false
+                    message: "Data pasien belum ada."
+                    data: null
+        "401":
+          description: Token tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Bukan role pasien
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /pasien/{id}:
     get:
       tags: [Pasien]

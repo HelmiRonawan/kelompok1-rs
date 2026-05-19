@@ -103,6 +103,19 @@ class PendaftaranController extends Controller
 
         $user = auth()->user();
 
+        // Cek apakah user ini sudah punya data pasien
+        $pasienUser = $user->pasien;
+    
+        if ($pasienUser) {
+            // User sudah punya data pasien — verifikasi NIK harus cocok
+            if ($pasienUser->nik !== $validated['nik']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'NIK tidak sesuai dengan akun ini.',
+                ], 422);
+            }
+        }
+
         // Cek apakah pasien lama (NIK sudah ada)
         $pasienLama = Pasien::where('nik', $validated['nik'])->first();
 

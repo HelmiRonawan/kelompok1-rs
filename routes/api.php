@@ -47,6 +47,10 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('users', UserController::class)
         ->middleware('role:superadmin');
 
+    // Khusus pasien ambil data diri sendiri
+    Route::get('pasien/profil', [PasienController::class, 'profil'])
+        ->middleware('role:pasien');
+
     // Pasien
     Route::prefix('pasien')->group(function () {
         Route::middleware('role:superadmin,admin_perawat')->group(function () {
@@ -56,6 +60,7 @@ Route::middleware('auth:api')->group(function () {
         });
         Route::middleware('role:superadmin,admin_perawat,pasien')->group(function () {
             Route::get('{id}', [PasienController::class, 'show']);
+            Route::get('cek-nik/{nik}', [PasienController::class, 'cekNik']); // ← pasien bisa akses
         });
     });
 

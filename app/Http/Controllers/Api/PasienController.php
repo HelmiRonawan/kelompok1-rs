@@ -137,4 +137,29 @@ class PasienController extends Controller
             'data'    => $pasien->fresh(),
         ]);
     }
+
+    /**
+     * GET /api/pasien/profil
+     * Pasien: ambil data diri sendiri
+     */
+    public function profil(): JsonResponse
+    {
+        $user   = auth()->user();
+        $pasien = $user->pasien;
+    
+        if (!$pasien) {
+            return response()->json([
+                'success'      => true,
+                'terdaftar'    => false,
+                'message'      => 'Data pasien belum ada.',
+                'data'         => null,
+            ]);
+        }
+    
+        return response()->json([
+            'success'   => true,
+            'terdaftar' => true,
+            'data'      => $pasien,
+        ]);
+    }
 }

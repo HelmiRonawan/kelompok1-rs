@@ -1066,7 +1066,7 @@ paths:
                   unit_id: 2
       responses:
         "201":
-          description: Pendaftaran berhasil — tiket antrian siap
+          description: Pendaftaran berhasil — tiket antrian + estimasi waktu
           content:
             application/json:
               schema:
@@ -1077,13 +1077,84 @@ paths:
                   data:
                     type: object
                     properties:
-                      tiket: { $ref: "#/components/schemas/TiketAntrian" }
-                      pasien: { $ref: "#/components/schemas/Pasien" }
+                      tiket:
+                        type: object
+                        properties:
+                          nomor_antrian:
+                            type: integer
+                            example: 11
+                          kode_antrian:
+                            type: string
+                            example: A-011
+                          unit:
+                            type: string
+                            example: Mata
+                          tanggal:
+                            type: string
+                            format: date
+                            example: "2026-04-27"
+                          nomor_pendaftaran:
+                            type: string
+                            example: PEND-20260427-0011
+                          antrian_di_depan:
+                            type: integer
+                            example: 10
+                            description: Jumlah pasien yang masih menunggu di depan
+                          estimasi:
+                            type: object
+                            properties:
+                              menit_per_pasien:
+                                type: integer
+                                example: 15
+                                description: Rata-rata waktu layanan per pasien (menit)
+                              total_menit:
+                                type: integer
+                                example: 150
+                                description: Total estimasi waktu menunggu (menit)
+                              perkiraan_jam:
+                                type: string
+                                example: "10:30"
+                                description: Perkiraan jam dipanggil (format HH:mm)
+                              catatan:
+                                type: string
+                                example: Estimasi dapat berubah sesuai kondisi
+                      pasien:
+                        type: object
+                        properties:
+                          nomor_rm:
+                            type: string
+                            example: RM-000001
+                          nama_lengkap:
+                            type: string
+                            example: Budi Santoso
+                          nik:
+                            type: string
+                            example: "3201234567890001"
+              example:
+                success: true
+                message: Pendaftaran berhasil.
+                data:
+                  tiket:
+                    nomor_antrian: 11
+                    kode_antrian: A-011
+                    unit: Mata
+                    tanggal: "2026-04-27"
+                    nomor_pendaftaran: PEND-20260427-0011
+                    antrian_di_depan: 10
+                    estimasi:
+                      menit_per_pasien: 15
+                      total_menit: 150
+                      perkiraan_jam: "10:30"
+                      catatan: Estimasi dapat berubah sesuai kondisi
+                  pasien:
+                    nomor_rm: RM-000001
+                    nama_lengkap: Budi Santoso
+                    nik: "3201234567890001"
         "422":
           description: Pasien sudah terdaftar di unit ini hari ini / unit tidak aktif
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /pendaftaran/online:
     post:
@@ -1160,7 +1231,7 @@ paths:
                 value:
                   nik: "3201234567890001"
                   nama_lengkap: Budi Santoso
-                  unit_id: 3
+                  unit_id: 2
               Pasien Lama (dengan nomor RM):
                 value:
                   nik: "3201234567890001"
@@ -1169,7 +1240,7 @@ paths:
                   unit_id: 1
       responses:
         "201":
-          description: Pendaftaran berhasil — tiket antrian
+          description: Pendaftaran berhasil — tiket antrian + estimasi waktu
           content:
             application/json:
               schema:
@@ -1180,13 +1251,66 @@ paths:
                   data:
                     type: object
                     properties:
-                      tiket: { $ref: "#/components/schemas/TiketAntrian" }
-                      pasien: { $ref: "#/components/schemas/Pasien" }
+                      tiket:
+                        type: object
+                        properties:
+                          nomor_antrian:
+                            type: integer
+                            example: 5
+                          kode_antrian:
+                            type: string
+                            example: B-005
+                          unit:
+                            type: string
+                            example: Gigi
+                          tanggal:
+                            type: string
+                            format: date
+                            example: "2026-04-27"
+                          nomor_pendaftaran:
+                            type: string
+                            example: PEND-20260427-0005
+                          antrian_di_depan:
+                            type: integer
+                            example: 4
+                            description: Jumlah pasien yang masih menunggu di depan
+                          estimasi:
+                            type: object
+                            properties:
+                              menit_per_pasien:
+                                type: integer
+                                example: 15
+                              total_menit:
+                                type: integer
+                                example: 60
+                              perkiraan_jam:
+                                type: string
+                                example: "09:45"
+                              catatan:
+                                type: string
+                                example: Estimasi dapat berubah sesuai kondisi
+                      pasien:
+                        type: object
+                        properties:
+                          nomor_rm:
+                            type: string
+                            example: RM-000005
+                          nama_lengkap:
+                            type: string
+                            example: Siti Rahayu
+                          nik:
+                            type: string
+                            example: "3201234567890002"
         "422":
-          description: Data tidak cocok / sudah terdaftar hari ini / unit tidak aktif
+          description: |
+            Kemungkinan error:
+            - NIK tidak sesuai dengan akun ini
+            - Nomor RM tidak sesuai
+            - Pasien sudah terdaftar di unit ini hari ini
+            - Unit tidak aktif
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ErrorResponse" }
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /pendaftaran/{id}:
     get:

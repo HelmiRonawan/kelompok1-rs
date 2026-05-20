@@ -244,19 +244,45 @@ class PendaftaranController extends Controller
                 'status'         => 'menunggu',
             ]);
 
+            // HITUNG ESTIMASI (setelah antrian dibuat)
+            $antrianDiDepan = Antrian::where('unit_id', $unitId) // hitung antrian di depan
+                ->where('tanggal', $tanggal)
+                ->where('status', 'menunggu')
+                ->where('nomor_antrian', '<', $nomor) // yang nomornya lebih kecil
+                ->count();
+
+            // Hitung rata-rata waktu layanan dari antrian yang sudah selesai hari ini
+            $rataRataMenit = DB::table('antrian')
+                ->where('unit_id', $unitId)
+                ->where('tanggal', $tanggal)
+                ->whereNotNull('waktu_panggil')
+                ->whereIn('status', ['selesai_pemeriksaan', 'lunas', 'obat_diserahkan'])
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, waktu_panggil, updated_at)) as rata_rata')
+                ->value('rata_rata');
+
+            // Jika belum ada data hari ini, pakai default 15 menit
+            $menitPerPasien  = $rataRataMenit ? round($rataRataMenit) : 15;
+            $estimasiMenit   = $antrianDiDepan * $menitPerPasien;
+            $estimasiSelesai = now()->addMinutes($estimasiMenit);
+
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pendaftaran berhasil.',
                 'data'    => [
-                    // Tiket antrian
                     'tiket' => [
                         'nomor_antrian'     => $nomor,
                         'kode_antrian'      => $kode,
                         'unit'              => $unit->nama_unit,
                         'tanggal'           => $tanggal,
                         'nomor_pendaftaran' => $pendaftaran->nomor_pendaftaran,
+                        'antrian_di_depan'  => $antrianDiDepan,
+                        'estimasi' => [
+                            'menit_per_pasien'  => $menitPerPasien,
+                            'total_menit'       => $estimasiMenit,
+                            'perkiraan_jam'     => $estimasiSelesai->format('H:i'),  // "10:30"
+                            'catatan'           => 'Estimasi dapat berubah sesuai kondisi',
+                        ],
                     ],
                     'pasien' => [
                         'nomor_rm'     => $pasien->nomor_rm,

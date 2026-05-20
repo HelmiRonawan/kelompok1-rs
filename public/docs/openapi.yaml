@@ -1483,6 +1483,85 @@ paths:
         "404":
           description: Tidak ada antrian yang menunggu
 
+  /antrian/{id}/recall:
+    post:
+      tags: [Antrian]
+      summary: Recall — panggil ulang nomor yang sama
+      description: Dipakai jika pasien belum masuk setelah dipanggil. Memperbarui waktu panggil.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Antrian dipanggil ulang
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:       { type: boolean, example: true }
+                  message:       { type: string, example: "Antrian MATA-005 dipanggil ulang." }
+                  data:
+                    type: object
+                    properties:
+                      kode_antrian:  { type: string, example: MATA-005 }
+                      nomor_antrian: { type: integer, example: 5 }
+                      unit:          { type: string, example: Mata }
+                      nama_pasien:   { type: string, example: Budi Santoso }
+                      waktu_panggil: { type: string, format: date-time }
+        "422":
+          description: Status antrian tidak sesuai
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /antrian/{id}/lewati:
+    post:
+      tags: [Antrian]
+      summary: Lewati — skip antrian ini, panggil berikutnya otomatis
+      description: |
+        Menandai antrian sebagai `tidak_hadir` lalu otomatis memanggil nomor berikutnya.
+        Hanya bisa dilakukan pada antrian yang sedang berstatus `dipanggil`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Antrian dilewati, berikutnya dipanggil otomatis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:  { type: boolean, example: true }
+                  message:  { type: string, example: "Antrian MATA-005 dilewati." }
+                  dilewati:
+                    type: object
+                    properties:
+                      kode_antrian: { type: string, example: MATA-005 }
+                      nama_pasien:  { type: string, example: Budi Santoso }
+                  berikutnya:
+                    nullable: true
+                    type: object
+                    properties:
+                      kode_antrian:  { type: string, example: MATA-006 }
+                      nomor_antrian: { type: integer, example: 6 }
+                      nama_pasien:   { type: string, example: Siti Rahayu }
+                      waktu_panggil: { type: string, format: date-time }
+        "422":
+          description: Antrian tidak sedang dipanggil
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
   /antrian/{id}/status:
     put:
       tags: [Antrian]

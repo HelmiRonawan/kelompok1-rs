@@ -78,8 +78,8 @@ Route::middleware('auth:api')->group(function () {
 
         // Semua role: lihat detail & riwayat
         Route::middleware('role:superadmin,admin_perawat,pasien')->group(function () {
-            Route::get('{id}',                      [PendaftaranController::class, 'show']);
             Route::get('pasien/{pasienId}/riwayat', [PendaftaranController::class, 'riwayatPasien']);
+            Route::get('{id}',                      [PendaftaranController::class, 'show']);
         });
     });
 
@@ -90,6 +90,8 @@ Route::middleware('auth:api')->group(function () {
 
         Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::post('{id}/panggil',                     [AntrianController::class, 'panggil']);
+            Route::post('{id}/recall',                      [AntrianController::class, 'recall']);
+            Route::post('{id}/lewati',                      [AntrianController::class, 'lewati']); 
             Route::post('unit/{unitId}/panggil-berikutnya', [AntrianController::class, 'panggilBerikutnya']);
             Route::put('{id}/status',                       [AntrianController::class, 'updateStatus']);
             Route::get('unit/{unitId}',                     [AntrianController::class, 'listByUnit']);

@@ -245,4 +245,88 @@ class AntrianController extends Controller
             'data'    => $antrian,
         ]);
     }
+
+    /**
+     * POST /api/antrian/{id}/recall
+     * Panggil ulang nomor yang sama (pasien belum masuk)
+     */
+    public function recall(int $id): JsonResponse
+    {
+        $antrian = Antrian::with(['pendaftaran.pasien', 'unit'])->findOrFail($id);
+    
+        if (!in_array($antrian->status, ['dipanggil', 'tidak_hadir'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya bisa recall antrian yang sudah dipanggil atau tidak hadir.',
+            ], 422);
+        }
+    
+        $antrian->update([
+            'status'       => 'dipanggil',
+            'waktu_panggil'=> now(), // ← perbarui waktu panggil
+        ]);
+    
+        return response()->json([
+            'success' => true,
+            'message' => "Antrian {$antrian->kode_antrian} dipanggil ulang.",
+            'data'    => [
+                'kode_antrian'  => $antrian->kode_antrian,
+                'nomor_antrian' => $antrian->nomor_antrian,
+                'unit'          => $antrian->unit->nama_unit,
+                'nama_pasien'   => $antrian->pendaftaran->pasien->nama_lengkap,
+                'waktu_panggil' => now(),
+            ],
+        ]);
+    }
+    
+    /**
+     * POST /api/antrian/{id}/lewati
+     * Lewati antrian ini → status tidak_hadir
+     * Otomatis panggil nomor berikutnya
+     */
+    public function lewati(int $id): JsonResponse
+    {
+        $antrian = Antrian::with(['pendaftaran.pasien', 'unit'])->findOrFail($id);
+    
+        if ($antrian->status !== 'dipanggil') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya bisa lewati antrian yang sedang dipanggil.',
+            ], 422);
+        }
+    
+        // Tandai tidak hadir
+        $antrian->update(['status' => 'tidak_hadir']);
+    
+        // Otomatis panggil berikutnya
+        $tanggal        = today()->toDateString();
+        $berikutnya     = Antrian::with(['pendaftaran.pasien'])
+            ->where('unit_id', $antrian->unit_id)
+            ->where('tanggal', $tanggal)
+            ->where('status', 'menunggu')
+            ->orderBy('nomor_antrian')
+            ->first();
+    
+        if ($berikutnya) {
+            $berikutnya->update([
+                'status'        => 'dipanggil',
+                'waktu_panggil' => now(),
+            ]);
+        }
+    
+        return response()->json([
+            'success'    => true,
+            'message'    => "Antrian {$antrian->kode_antrian} dilewati.",
+            'dilewati'   => [
+                'kode_antrian'  => $antrian->kode_antrian,
+                'nama_pasien'   => $antrian->pendaftaran->pasien->nama_lengkap,
+            ],
+            'berikutnya' => $berikutnya ? [
+                'kode_antrian'  => $berikutnya->kode_antrian,
+                'nomor_antrian' => $berikutnya->nomor_antrian,
+                'nama_pasien'   => $berikutnya->pendaftaran->pasien->nama_lengkap,
+                'waktu_panggil' => now(),
+            ] : null,
+        ]);
+    }
 }

@@ -649,6 +649,46 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
+  /auth/daftar-sebagai-pasien:
+    post:
+      tags: [Auth]
+      summary: Petugas tambah role pasien ke akun sendiri
+      description: |
+        Petugas RS (perawat, dokter, kasir, apoteker) bisa mendaftarkan diri
+        sebagai pasien tanpa perlu ke superadmin.
+
+        **Setelah berhasil, lakukan refresh token atau login ulang**
+        agar role pasien aktif di token JWT.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Role pasien berhasil ditambahkan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: "Role pasien berhasil ditambahkan. Silakan login ulang untuk refresh token." }
+                  data:
+                    type: object
+                    properties:
+                      roles:
+                        type: array
+                        items: { type: string }
+                        example: [perawat, pasien]
+        "422":
+          description: Sudah memiliki role pasien
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        "403":
+          description: Superadmin tidak bisa daftar sebagai pasien
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
   # ═══════════════════════════════════════════════════════════════════════════
   # USER MANAGEMENT
   # ═══════════════════════════════════════════════════════════════════════════

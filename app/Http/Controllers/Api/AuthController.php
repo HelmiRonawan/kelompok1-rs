@@ -373,4 +373,42 @@ class AuthController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Password berhasil direset. Silakan login.']);
     }
+
+    /**
+     * POST /api/auth/daftar-sebagai-pasien
+     * Petugas (perawat/dokter/kasir/apoteker) tambah role pasien ke akun sendiri
+     */
+    public function daftarSebagaiPasien(): JsonResponse
+    {
+        $user = auth()->user();
+    
+        // Cek apakah sudah punya role pasien
+        if ($user->hasRole('pasien')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun sudah memiliki role pasien.',
+            ], 422);
+        }
+    
+        // Hanya staff RS yang boleh (bukan superadmin)
+        $boleh = ['perawat', 'admin_perawat', 'dokter', 'kasir', 'admin_kasir', 'apoteker', 'admin_apotik'];
+        if (!$user->hasAnyRole($boleh)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak memiliki akses untuk fitur ini.',
+            ], 403);
+        }
+    
+        // Tambah role pasien
+        $pasienRole = Role::where('nama_role', 'pasien')->first();
+        $user->roles()->attach($pasienRole->id);
+    
+        return response()->json([
+            'success' => true,
+            'message' => 'Role pasien berhasil ditambahkan. Silakan login ulang untuk refresh token.',
+            'data'    => [
+                'roles' => $user->fresh()->roles->pluck('nama_role'),
+            ],
+        ]);
+    }
 }

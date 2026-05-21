@@ -25,6 +25,7 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('logout',  [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
     Route::get('me',       [AuthController::class, 'me']);
+    Route::post('daftar-sebagai-pasien', [AuthController::class, 'daftarSebagaiPasien']);
 });
 
 // ── Unit (Public) ──────────────────────────────────

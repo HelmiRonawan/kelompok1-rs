@@ -279,7 +279,6 @@ class AuthController extends Controller
                 'valid'   => true,
                 'data'    => [
                     'user_id'    => $payload->get('sub'),
-                    'nama'       => $payload->get('nama'),
                     'roles'      => $payload->get('roles'),
                     'expired_at' => date('Y-m-d H:i:s', $payload->get('exp')),
                 ],

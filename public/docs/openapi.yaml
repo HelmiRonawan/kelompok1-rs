@@ -537,7 +537,6 @@ paths:
                     type: object
                     properties:
                       user_id: { type: integer, example: 5 }
-                      nama: { type: string, example: Dr. Budi Santoso }
                       roles:
                         {
                           type: array,

@@ -86,10 +86,8 @@ Route::middleware('auth:api')->group(function () {
 
     // Antrian
     Route::prefix('antrian')->group(function () {
-        Route::get('/', [AntrianController::class, 'index'])
-            ->middleware('role:superadmin,admin_perawat');
-
         Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
+            Route::get('/', [AntrianController::class, 'index']);
             Route::post('{id}/panggil',                     [AntrianController::class, 'panggil']);
             Route::post('{id}/recall',                      [AntrianController::class, 'recall']);
             Route::post('{id}/lewati',                      [AntrianController::class, 'lewati']); 

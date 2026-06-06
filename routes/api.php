@@ -54,21 +54,21 @@ Route::middleware('auth:api')->group(function () {
 
     // Pasien
     Route::prefix('pasien')->group(function () {
-        Route::middleware('role:superadmin,admin_perawat')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::get('/',             [PasienController::class, 'index']);
             Route::get('cek-nik/{nik}', [PasienController::class, 'cekNik']);
             Route::put('{id}',          [PasienController::class, 'update']);
         });
-        Route::middleware('role:superadmin,admin_perawat,pasien')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,pasien,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::get('{id}', [PasienController::class, 'show']);
-            Route::get('cek-nik/{nik}', [PasienController::class, 'cekNik']); // ← pasien bisa akses
+            Route::get('cek-nik/{nik}', [PasienController::class, 'cekNik']); // ← pasien bisa akses // Akan dihapus?
         });
     });
 
     // Pendaftaran
     Route::prefix('pendaftaran')->group(function () {
         // Admin perawat: list & daftar langsung
-        Route::middleware('role:superadmin,admin_perawat')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::get('/',           [PendaftaranController::class, 'index']);
             Route::post('/langsung',  [PendaftaranController::class, 'langsung']); // ← pasien datang langsung
         });
@@ -78,7 +78,7 @@ Route::middleware('auth:api')->group(function () {
             ->middleware('role:pasien');
 
         // Semua role: lihat detail & riwayat
-        Route::middleware('role:superadmin,admin_perawat,pasien')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
             Route::get('pasien/{pasienId}/riwayat', [PendaftaranController::class, 'riwayatPasien']);
             Route::get('{id}',                      [PendaftaranController::class, 'show']);
         });

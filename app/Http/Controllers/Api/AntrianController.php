@@ -89,7 +89,10 @@ class AntrianController extends Controller
             'statistik' => [
                 'total'    => $totalHariIni,
                 'selesai'  => $sudahSelesai,
-                'menunggu' => $totalHariIni - $sudahSelesai,
+                'menunggu' => Antrian::where('unit_id', $unitId)
+                ->where('tanggal', $tanggal)
+                ->where('status', 'menunggu')
+                ->count(),
             ],
         ]);
     }
@@ -204,12 +207,44 @@ class AntrianController extends Controller
             'unit'    => UnitPemeriksaan::find($unitId)?->nama_unit,
             'tanggal' => $tanggal,
             'data'    => [
-                'menunggu'            => $antrian->where('status', 'menunggu')->values(),
-                'pemeriksaan_awal'    => $antrian->where('status', 'pemeriksaan_awal')->values(),
-                'sedang_diperiksa'    => $antrian->where('status', 'sedang_diperiksa')->values(),
-                'selesai_pemeriksaan' => $antrian->where('status', 'selesai_pemeriksaan')->values(),
-                'lunas'               => $antrian->where('status', 'lunas')->values(),
-                'obat_diserahkan'     => $antrian->where('status', 'obat_diserahkan')->values(),
+                'menunggu' => $antrian->where('status', 'menunggu')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+                'created_at'    => $a->created_at,
+            ]),
+            
+            'pemeriksaan_awal' => $antrian->where('status', 'pemeriksaan_awal')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+                'waktu_panggil' => $a->waktu_panggil,
+            ]),
+            
+            'sedang_diperiksa' => $antrian->where('status', 'sedang_diperiksa')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+                'waktu_panggil' => $a->waktu_panggil,
+            ]),
+            
+            'selesai_pemeriksaan' => $antrian->where('status', 'selesai_pemeriksaan')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+            ]),
+            
+            'lunas' => $antrian->where('status', 'lunas')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+            ]),
+            
+            'obat_diserahkan' => $antrian->where('status', 'obat_diserahkan')->values()->map(fn($a) => [
+                'kode_antrian'  => $a->kode_antrian,
+                'nomor_antrian' => $a->nomor_antrian,
+                'nama_pasien'   => $a->pendaftaran->pasien->nama_lengkap,
+            ]),
             ],
             'statistik' => [
                 'total'    => $antrian->count(),

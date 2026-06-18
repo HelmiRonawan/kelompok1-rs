@@ -78,7 +78,7 @@ Route::middleware('auth:api')->group(function () {
             ->middleware('role:pasien');
 
         // Semua role: lihat detail & riwayat
-        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker')->group(function () {
+        Route::middleware('role:superadmin,admin_perawat,perawat,dokter,admin_kasir,kasir,admin_apotik,apoteker,pasien')->group(function () {
             Route::get('pasien/{pasienId}/riwayat', [PendaftaranController::class, 'riwayatPasien']);
             Route::get('{id}',                      [PendaftaranController::class, 'show']);
         });
